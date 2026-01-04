@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portfolio Viewer</title>
+    
+    <!-- Styles -->
+    <link rel="stylesheet" href="css/styles.css">
+    
+    <!-- Flatpickr for date picking -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/dark.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="header-left">
+                <h1>📈 Portfolio Tools</h1>
+                <nav class="main-nav">
+                    <a href="index.html" class="nav-tab active">Backtest</a>
+                    <a href="calculator.html" class="nav-tab">Calculator</a>
+                </nav>
+            </div>
+            <div class="header-right">
+                <button id="loadStrategyBtn" class="btn btn-secondary btn-sm" title="Load Strategy">
+                    <span class="icon">📂</span> Load
+                </button>
+                <button id="saveStrategyBtn" class="btn btn-primary btn-sm" title="Save Strategy">
+                    <span class="icon">💾</span> Save
+                </button>
+                <button id="settingsBtn" class="icon-btn" title="Settings">⚙️</button>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Left Panel: Configuration -->
+            <aside class="config-panel">
+                <!-- Asset Selection Section -->
+                <section class="panel-section">
+                    <h2 class="section-title">
+                        <span class="icon">📊</span>
+                        Asset Selection
+                    </h2>
+                    
+                    <div class="ticker-input-group">
+                        <input 
+                            type="text" 
+                            id="tickerInput" 
+                            placeholder="SPY, QQQ, GLD (comma-separated)"
+                            autocomplete="off"
+                        >
+                        <button id="addTickerBtn" class="btn btn-primary">+ Add</button>
+                    </div>
+                    
+                    <div class="action-buttons">
+                        <button id="loadDataBtn" class="btn btn-secondary">
+                            <span class="icon">📥</span> Load Data
+                        </button>
+                        <button id="updateAllBtn" class="btn btn-secondary">
+                            <span class="icon">🔄</span> Update All
+                        </button>
+                    </div>
+                    
+                    <div id="selectedTickers" class="selected-tickers">
+                        <!-- Ticker chips will be added here -->
+                        <p class="empty-state">No tickers selected</p>
+                    </div>
+                </section>
+
+                <!-- Backtest Configuration Section -->
+                <section class="panel-section">
+                    <h2 class="section-title">
+                        <span class="icon">⚡</span>
+                        Backtest Configuration
+                    </h2>
+                    
+                    <div class="date-range-group">
+                        <div class="date-input">
+                            <label for="startDate">Start Date</label>
+                            <input type="text" id="startDate" placeholder="YYYY-MM-DD">
+                        </div>
+                        <span class="date-separator">to</span>
+                        <div class="date-input">
+                            <label for="endDate">End Date</label>
+                            <input type="text" id="endDate" placeholder="YYYY-MM-DD">
+                        </div>
+                    </div>
+                    
+                    <div class="weights-section">
+                        <div class="weights-header">
+                            <h3>Allocation Weights</h3>
+                            <label class="normalize-toggle">
+                                <input type="checkbox" id="autoNormalize" checked>
+                                <span>Auto-normalize</span>
+                            </label>
+                        </div>
+                        
+                        <div id="weightsContainer" class="weights-container">
+                            <!-- Weight sliders will be added here -->
+                            <p class="empty-state">Add tickers to set weights</p>
+                        </div>
+                        
+                        <div class="weights-total">
+                            <span>Total:</span>
+                            <span id="weightsTotal" class="total-value">0%</span>
+                        </div>
+                        
+                        <div class="margin-section">
+                            <label class="margin-label">
+                                <span>Margin/Leverage:</span>
+                                <input type="number" id="marginInput" value="1.0" 
+                                       min="0.1" max="10" step="0.1" 
+                                       onchange="App.updateMargin(this.value)">
+                                <span class="margin-suffix">x</span>
+                            </label>
+                            <p id="marginInfo" class="margin-info"></p>
+                        </div>
+                    </div>
+
+                    <button id="runBacktestBtn" class="btn btn-action" disabled>
+                        <span class="icon">▶️</span> Run Backtest
+                    </button>
+                </section>
+
+                <!-- Sub-Period Section -->
+                <section class="panel-section" id="subPeriodSection" style="display: none;">
+                    <h2 class="section-title">
+                        <span class="icon">📅</span>
+                        Sub-Period Adjustment
+                    </h2>
+                    
+                    <div id="subPeriodsContainer" class="sub-periods-container">
+                        <!-- Sub-period forms will be added here -->
+                    </div>
+                    
+                    <div class="sub-period-actions">
+                        <button id="addSubPeriodBtn" class="btn btn-secondary">
+                            <span class="icon">➕</span> Add Period
+                        </button>
+                        <button id="clearSubPeriodsBtn" class="btn btn-danger-outline">
+                            <span class="icon">🗑️</span> Clear All
+                        </button>
+                    </div>
+                    
+                    <button id="updateWithSubPeriodsBtn" class="btn btn-action">
+                        <span class="icon">🔄</span> Update Backtest
+                    </button>
+                </section>
+            </aside>
+
+            <!-- Right Panel: Results -->
+            <section class="results-panel">
+                <!-- Performance Chart -->
+                <div class="chart-container">
+                    <div class="chart-header">
+                        <h2>Performance Chart</h2>
+                        <div class="chart-actions">
+                            <button id="toggleFedRateBtn" class="icon-btn active" title="Toggle Fed Rate Overlay">📊</button>
+                            <button id="resetToFullRangeBtn" class="icon-btn" title="Reset to Full Date Range">🔄</button>
+                            <button id="exportChartBtn" class="icon-btn" title="Export as PNG">📷</button>
+                            <button id="resetZoomBtn" class="icon-btn" title="Reset Zoom">🔍</button>
+                        </div>
+                    </div>
+                    <div id="performanceChart" class="chart-area">
+                        <div class="chart-placeholder">
+                            <span class="placeholder-icon">📊</span>
+                            <p>Run a backtest to see results</p>
+                        </div>
+                    </div>
+                    <div id="chartRangeInfo" class="chart-range-info" style="display: none;">
+                        <span>Selected: </span>
+                        <span id="selectedRange"></span>
+                        <button id="analyzeRangeBtn" class="btn btn-small">Analyze</button>
+                    </div>
+                </div>
+
+                <!-- Draggable Subsections Container -->
+                <div id="draggableContainer" class="draggable-container">
+                    <!-- Metrics Summary -->
+                    <div id="metricsContainer" class="metrics-container draggable-section" data-section="metrics" draggable="true" style="display: none;">
+                        <div class="section-header">
+                            <span class="drag-handle" title="Drag to reorder">⋮⋮</span>
+                            <h2 class="section-title">
+                                <span class="icon">📈</span>
+                                Performance Metrics
+                            </h2>
+                        </div>
+                        <div class="metrics-grid">
+                            <div class="metric-card">
+                                <span class="metric-label">Total Return</span>
+                                <span id="metricTotalReturn" class="metric-value">--</span>
+                            </div>
+                            <div class="metric-card">
+                                <span class="metric-label">CAGR</span>
+                                <span id="metricCAGR" class="metric-value">--</span>
+                            </div>
+                            <div class="metric-card">
+                                <span class="metric-label">Volatility</span>
+                                <span id="metricVolatility" class="metric-value">--</span>
+                            </div>
+                            <div class="metric-card">
+                                <span class="metric-label">Sharpe Ratio</span>
+                                <span id="metricSharpe" class="metric-value">--</span>
+                            </div>
+                            <div class="metric-card negative">
+                                <span class="metric-label">Max Drawdown</span>
+                                <span id="metricMaxDD" class="metric-value">--</span>
+                            </div>
+                            <div class="metric-card">
+                                <span class="metric-label">Period</span>
+                                <span id="metricPeriod" class="metric-value">--</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Drawdown Analysis -->
+                        <div id="drawdownSection" class="drawdown-section">
+                            <h3 class="subsection-title">📉 Top Drawdown Periods</h3>
+                            <div id="drawdownList" class="drawdown-list">
+                                <!-- Drawdown periods will be added here -->
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Weight Allocation Over Time -->
+                    <div id="weightAllocationContainer" class="weight-allocation-container draggable-section" data-section="weights" draggable="true" style="display: none;">
+                        <div class="section-header">
+                            <span class="drag-handle" title="Drag to reorder">⋮⋮</span>
+                            <h2 class="section-title">
+                                <span class="icon">⚖️</span>
+                                Weight Allocation Over Time
+                            </h2>
+                        </div>
+                        <div id="weightAllocationChart" class="weight-chart-area">
+                            <!-- Weight area chart will be rendered here -->
+                        </div>
+                    </div>
+                    
+                    <!-- Asset Prices Over Time -->
+                    <div id="assetPricesContainer" class="asset-prices-container draggable-section" data-section="prices" draggable="true" style="display: none;">
+                        <div class="section-header">
+                            <span class="drag-handle" title="Drag to reorder">⋮⋮</span>
+                            <h2 class="section-title">
+                                <span class="icon">📊</span>
+                                Asset Prices (Normalized)
+                            </h2>
+                            <label class="price-toggle">
+                                <input type="checkbox" id="showLogScale" onchange="App.togglePriceLogScale()">
+                                <span>Log Scale</span>
+                            </label>
+                        </div>
+                        <div id="assetPricesChart" class="price-chart-area">
+                            <!-- Asset prices chart will be rendered here -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Status Bar -->
+        <footer class="status-bar">
+            <div id="statusMessage" class="status-message">Ready</div>
+            <div class="status-indicator">
+                <span id="apiStatus" class="status-dot"></span>
+                <span>API</span>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay" style="display: none;">
+        <div class="loading-spinner"></div>
+        <p id="loadingMessage">Loading...</p>
+    </div>
+
+    <!-- Save Strategy Modal -->
+    <div id="saveStrategyModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>💾 Save Strategy</h3>
+                <button class="modal-close" onclick="App.closeSaveModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="strategyName">Strategy Name</label>
+                    <input type="text" id="strategyName" placeholder="e.g., Balanced 60/40">
+                </div>
+                <div class="strategy-preview">
+                    <h4>Strategy Summary</h4>
+                    <div id="strategySummary"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="App.closeSaveModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="App.saveStrategy()">Save Strategy</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Load Strategy Modal -->
+    <div id="loadStrategyModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>📂 Load Strategy</h3>
+                <button class="modal-close" onclick="App.closeLoadModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="strategyList" class="strategy-list">
+                    <p class="empty-state">Loading strategies...</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="App.closeLoadModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/chart.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
+

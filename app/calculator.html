@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portfolio Calculator</title>
+    
+    <!-- Shared Styles -->
+    <link rel="stylesheet" href="css/styles.css">
+    <!-- Calculator-specific Styles -->
+    <link rel="stylesheet" href="css/calculator.css">
+    
+    <!-- Flatpickr for date picking -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/dark.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="header-left">
+                <h1>📈 Portfolio Tools</h1>
+                <nav class="main-nav">
+                    <a href="index.html" class="nav-tab">Backtest</a>
+                    <a href="calculator.html" class="nav-tab active">Calculator</a>
+                </nav>
+            </div>
+            <div class="header-right">
+                <div class="data-status">
+                    <span class="status-icon" id="dataStatusIcon">●</span>
+                    <span id="dataStatusText">Checking data...</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="calc-main-content">
+            <!-- Left Panel: Configuration -->
+            <aside class="calc-config-panel">
+                <!-- Portfolio Setup -->
+                <section class="panel-section">
+                    <h2 class="section-title">
+                        <span class="icon">💰</span>
+                        Portfolio Setup
+                    </h2>
+                    
+                    <div class="config-row">
+                        <label>Target Cash ($)</label>
+                        <input type="number" id="targetCash" value="100000" min="0" step="1000">
+                    </div>
+                    
+                    <div class="config-row">
+                        <label>Lookback Window (days)</label>
+                        <input type="number" id="lookbackWindow" value="252" min="20" max="1260">
+                    </div>
+                </section>
+                
+                <!-- Asset Configuration -->
+                <section class="panel-section">
+                    <h2 class="section-title">
+                        <span class="icon">📊</span>
+                        Assets
+                    </h2>
+                    
+                    <div class="asset-input-row">
+                        <input type="text" id="assetTickerInput" placeholder="Ticker (e.g., SPY)">
+                        <input type="number" id="assetWeightInput" placeholder="Weight %" min="0" max="100" value="25">
+                        <button id="addAssetBtn" class="btn btn-primary btn-sm">+ Add</button>
+                    </div>
+                    
+                    <div class="quick-actions">
+                        <button id="importFromViewerBtn" class="btn btn-secondary btn-sm" title="Import from Backtest">
+                            <span class="icon">📥</span> Import from Backtest
+                        </button>
+                    </div>
+                    
+                    <div id="assetsList" class="assets-list">
+                        <!-- Asset rows will be added here -->
+                        <p class="empty-state">No assets added yet</p>
+                    </div>
+                    
+                    <div class="weights-summary">
+                        <span>Total Weight:</span>
+                        <span id="totalWeight" class="weight-value">0%</span>
+                    </div>
+                </section>
+                
+                <!-- Current Holdings (Optional) -->
+                <section class="panel-section collapsible">
+                    <h2 class="section-title toggle-section" onclick="Calculator.toggleSection('holdingsSection')">
+                        <span class="icon">📦</span>
+                        Current Holdings
+                        <span class="toggle-icon">▼</span>
+                    </h2>
+                    
+                    <div id="holdingsSection" class="section-content">
+                        <p class="hint-text">Enter your current share counts to calculate buy/sell orders</p>
+                        <div id="holdingsList" class="holdings-list">
+                            <!-- Holdings inputs will be added here -->
+                        </div>
+                    </div>
+                </section>
+                
+                <!-- Calculate Button -->
+                <div class="action-section">
+                    <button id="calculateBtn" class="btn btn-primary btn-large">
+                        <span class="icon">🧮</span> Calculate
+                    </button>
+                </div>
+            </aside>
+            
+            <!-- Right Panel: Results -->
+            <section class="calc-results-panel">
+                <!-- Position Summary -->
+                <div id="positionSummary" class="result-card" style="display: none;">
+                    <h2 class="card-title">
+                        <span class="icon">📋</span>
+                        Position Summary
+                    </h2>
+                    <div class="position-table-container">
+                        <table id="positionTable" class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Ticker</th>
+                                    <th>Weight</th>
+                                    <th>Price</th>
+                                    <th>Target $</th>
+                                    <th>Shares</th>
+                                    <th>Actual $</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Position rows -->
+                            </tbody>
+                            <tfoot>
+                                <tr class="total-row">
+                                    <td>Total</td>
+                                    <td id="totalWeightResult">100%</td>
+                                    <td>-</td>
+                                    <td id="totalTargetDollar">$0</td>
+                                    <td>-</td>
+                                    <td id="totalActualDollar">$0</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+                
+                <!-- Trade Orders -->
+                <div id="tradeOrders" class="result-card" style="display: none;">
+                    <h2 class="card-title">
+                        <span class="icon">🔄</span>
+                        Trade Orders
+                    </h2>
+                    <div id="tradeOrdersList" class="trade-orders-list">
+                        <!-- Trade orders -->
+                    </div>
+                </div>
+                
+                <!-- Risk Metrics -->
+                <div id="riskMetrics" class="result-card" style="display: none;">
+                    <h2 class="card-title">
+                        <span class="icon">📉</span>
+                        Risk Analysis
+                    </h2>
+                    <div class="metrics-grid">
+                        <div class="metric-item">
+                            <span class="metric-label">Expected Return (Annual)</span>
+                            <span id="expectedReturn" class="metric-value">-</span>
+                        </div>
+                        <div class="metric-item">
+                            <span class="metric-label">Volatility (Annual)</span>
+                            <span id="volatility" class="metric-value">-</span>
+                        </div>
+                        <div class="metric-item">
+                            <span class="metric-label">Sharpe Ratio</span>
+                            <span id="sharpeRatio" class="metric-value">-</span>
+                        </div>
+                        <div class="metric-item">
+                            <span class="metric-label">Risk-Free Rate</span>
+                            <span id="riskFreeRate" class="metric-value">-</span>
+                        </div>
+                        <div class="metric-item var-metric">
+                            <span class="metric-label">VaR (95%, 30-day)</span>
+                            <span id="var95" class="metric-value negative">-</span>
+                        </div>
+                        <div class="metric-item var-metric">
+                            <span class="metric-label">VaR (99%, 30-day)</span>
+                            <span id="var99" class="metric-value negative">-</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 30-Day Projection Chart -->
+                <div id="projectionCard" class="result-card projection-card" style="display: none;">
+                    <h2 class="card-title">
+                        <span class="icon">🎯</span>
+                        30-Day Value Projection
+                    </h2>
+                    <div class="projection-summary">
+                        <div class="projection-stat">
+                            <span class="stat-label">Current Value</span>
+                            <span id="projCurrentValue" class="stat-value">$100,000</span>
+                        </div>
+                        <div class="projection-stat highlight">
+                            <span class="stat-label">Expected (30d)</span>
+                            <span id="projExpectedValue" class="stat-value">$101,500</span>
+                        </div>
+                        <div class="projection-stat">
+                            <span class="stat-label">95% Range</span>
+                            <span id="projRange95" class="stat-value range">$92k - $108k</span>
+                        </div>
+                    </div>
+                    <div id="projectionChart" class="projection-chart">
+                        <!-- Plotly chart -->
+                    </div>
+                </div>
+            </section>
+        </main>
+        
+        <!-- Status Bar -->
+        <footer class="status-bar">
+            <div class="status-left">
+                <span id="statusText">Ready</span>
+            </div>
+            <div class="status-right">
+                <span id="lastCalculated">-</span>
+            </div>
+        </footer>
+    </div>
+    
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay" style="display: none;">
+        <div class="loading-content">
+            <div class="loading-spinner"></div>
+            <span id="loadingText">Loading...</span>
+        </div>
+    </div>
+    
+    <!-- Toast Container -->
+    <div id="toastContainer" class="toast-container"></div>
+    
+    <!-- Scripts -->
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    
+    <!-- Shared modules -->
+    <script src="js/utils.js"></script>
+    <script src="js/api.js"></script>
+    
+    <!-- Calculator modules -->
+    <script src="js/calculator/state.js"></script>
+    <script src="js/calculator/data-manager.js"></script>
+    <script src="js/calculator/position-calc.js"></script>
+    <script src="js/calculator/risk-analysis.js"></script>
+    <script src="js/calculator/projection.js"></script>
+    <script src="js/calculator/ui.js"></script>
+    <script src="js/calculator/main.js"></script>
+</body>
+</html>
+
