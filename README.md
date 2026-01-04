@@ -2,6 +2,11 @@
 
 A lightweight yet powerful portfolio research tool for investors who want to study portfolio performance, run backtests, and calculate real-time position sizing with risk analysis.
 
+<!-- Replace with your own screenshot: save as docs/screenshot.png -->
+![PortfolioExpert Screenshot](docs/screenshot.png)
+
+*Backtest your portfolio allocations with interactive charts and comprehensive metrics*
+
 ## Why PortfolioExpert?
 
 Whether you're building a long-term investment strategy or rebalancing your current portfolio, PortfolioExpert helps you:
@@ -103,6 +108,8 @@ PortfolioExpert/
 │   │   └── portfolio.py        # Portfolio management
 │   └── routers/                # API endpoints
 │
+├── docs/                       # Documentation assets
+│   └── screenshot.png          # UI screenshot for README
 ├── start.sh                    # One-command startup
 ├── .gitignore
 └── README.md
