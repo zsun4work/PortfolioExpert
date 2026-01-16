@@ -14,6 +14,7 @@ const CalculatorState = {
     config: {
         targetCash: 100000,
         lookbackWindow: 252,  // Trading days
+        leverageRate: 1,      // Leverage/margin rate (1 = no leverage)
         riskFreeRate: null,   // From Fed rate
     },
     
@@ -177,6 +178,15 @@ const CalculatorState = {
      */
     setLookbackWindow(days) {
         this.config.lookbackWindow = Math.max(20, Math.min(1260, days));
+        this.saveToStorage();
+    },
+    
+    /**
+     * Update leverage rate
+     * @param {number} rate - Leverage rate (1 = no leverage, max 10)
+     */
+    setLeverageRate(rate) {
+        this.config.leverageRate = Math.max(1, Math.min(10, rate));
         this.saveToStorage();
     },
     

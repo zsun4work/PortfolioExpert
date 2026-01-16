@@ -302,6 +302,70 @@ const API = {
             body: JSON.stringify(weights),
         });
     },
+    
+    // =========================================================================
+    // Statistics Endpoints
+    // =========================================================================
+    
+    /**
+     * Get summary statistics for selected assets
+     * @param {string[]} tickers - List of ticker symbols
+     * @param {string} start - Start date (optional)
+     * @param {string} end - End date (optional)
+     * @returns {Promise<Object>} Summary statistics including volatility, return, and correlation
+     */
+    async getStatisticsSummary(tickers, start = null, end = null) {
+        const params = new URLSearchParams();
+        if (start) params.append('start', start);
+        if (end) params.append('end', end);
+        
+        const queryString = params.toString();
+        const endpoint = `/statistics/summary${queryString ? '?' + queryString : ''}`;
+        
+        return this.request(endpoint, {
+            method: 'POST',
+            body: JSON.stringify(tickers),
+        });
+    },
+    
+    /**
+     * Get rolling statistics for selected assets with a single window
+     * @param {string[]} tickers - List of ticker symbols
+     * @param {number} window - Rolling window size in days
+     * @param {string} start - Start date (optional)
+     * @param {string} end - End date (optional)
+     * @returns {Promise<Object>} Rolling volatility, return, and correlation data
+     */
+    async getRollingStatistics(tickers, window = 60, start = null, end = null) {
+        const params = new URLSearchParams();
+        params.append('window', window.toString());
+        if (start) params.append('start', start);
+        if (end) params.append('end', end);
+        
+        return this.request(`/statistics/rolling?${params}`, {
+            method: 'POST',
+            body: JSON.stringify(tickers),
+        });
+    },
+    
+    /**
+     * Get rolling statistics for multiple window sizes
+     * @param {string[]} tickers - List of ticker symbols
+     * @param {number[]} windows - List of window sizes in days
+     * @param {string} start - Start date (optional)
+     * @param {string} end - End date (optional)
+     * @returns {Promise<Object>} Rolling statistics for each window size
+     */
+    async getMultiWindowRollingStats(tickers, windows, start = null, end = null) {
+        const params = new URLSearchParams();
+        if (start) params.append('start', start);
+        if (end) params.append('end', end);
+        
+        return this.request(`/statistics/multi-window-rolling?${params}`, {
+            method: 'POST',
+            body: JSON.stringify({ tickers, windows }),
+        });
+    },
 };
 
 // Export for use in other modules

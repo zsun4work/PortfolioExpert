@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from config import API_HOST, API_PORT
 from database.connection import init_db
-from routers import data_router, backtest_router, portfolio_router
+from routers import data_router, backtest_router, portfolio_router, statistics_router
 
 
 @asynccontextmanager
@@ -43,6 +43,7 @@ app.add_middleware(
 app.include_router(data_router)
 app.include_router(backtest_router)
 app.include_router(portfolio_router)
+app.include_router(statistics_router)
 
 
 @app.get("/")
@@ -56,6 +57,7 @@ async def root():
             "data": "/data",
             "backtest": "/backtest",
             "portfolios": "/portfolios",
+            "statistics": "/statistics",
         },
     }
 

@@ -21,6 +21,7 @@
             <div class="header-left">
                 <h1>📈 Portfolio Tools</h1>
                 <nav class="main-nav">
+                    <a href="stat-analysis.html" class="nav-tab">Stat Analysis</a>
                     <a href="index.html" class="nav-tab">Backtest</a>
                     <a href="calculator.html" class="nav-tab active">Calculator</a>
                 </nav>
@@ -52,6 +53,11 @@
                     <div class="config-row">
                         <label>Lookback Window (days)</label>
                         <input type="number" id="lookbackWindow" value="252" min="20" max="1260">
+                    </div>
+                    
+                    <div class="config-row">
+                        <label>Leverage Rate</label>
+                        <input type="number" id="leverageRate" value="1" min="1" max="10" step="0.1">
                     </div>
                 </section>
                 
@@ -191,28 +197,63 @@
                     </div>
                 </div>
                 
-                <!-- 30-Day Projection Chart -->
+                <!-- Value Projection -->
                 <div id="projectionCard" class="result-card projection-card" style="display: none;">
-                    <h2 class="card-title">
-                        <span class="icon">🎯</span>
-                        30-Day Value Projection
-                    </h2>
+                    <div class="card-header-row">
+                        <h2 class="card-title">
+                            <span class="icon">🎯</span>
+                            Value Projection
+                        </h2>
+                        <div class="view-toggle">
+                            <button id="distributionViewBtn" class="toggle-btn active" onclick="Projection.switchView('distribution')">
+                                <span class="icon">📊</span> Distribution
+                            </button>
+                            <button id="continuousViewBtn" class="toggle-btn" onclick="Projection.switchView('continuous')">
+                                <span class="icon">📈</span> Timeline
+                            </button>
+                        </div>
+                    </div>
+                    
                     <div class="projection-summary">
                         <div class="projection-stat">
                             <span class="stat-label">Current Value</span>
                             <span id="projCurrentValue" class="stat-value">$100,000</span>
                         </div>
                         <div class="projection-stat highlight">
-                            <span class="stat-label">Expected (30d)</span>
+                            <span class="stat-label">Expected (1 Year)</span>
                             <span id="projExpectedValue" class="stat-value">$101,500</span>
                         </div>
                         <div class="projection-stat">
-                            <span class="stat-label">95% Range</span>
+                            <span class="stat-label">95% Range (1 Year)</span>
                             <span id="projRange95" class="stat-value range">$92k - $108k</span>
                         </div>
                     </div>
-                    <div id="projectionChart" class="projection-chart">
-                        <!-- Plotly chart -->
+                    
+                    <!-- Distribution View: 4 subfigures -->
+                    <div id="distributionView" class="projection-view">
+                        <div class="projection-grid">
+                            <div class="projection-subfig">
+                                <div class="subfig-label">1 Month (21 trading days)</div>
+                                <div id="projChart1m" class="subfig-chart"></div>
+                            </div>
+                            <div class="projection-subfig">
+                                <div class="subfig-label">3 Months (63 trading days)</div>
+                                <div id="projChart3m" class="subfig-chart"></div>
+                            </div>
+                            <div class="projection-subfig">
+                                <div class="subfig-label">6 Months (126 trading days)</div>
+                                <div id="projChart6m" class="subfig-chart"></div>
+                            </div>
+                            <div class="projection-subfig">
+                                <div class="subfig-label">1 Year (252 trading days)</div>
+                                <div id="projChart1y" class="subfig-chart"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Continuous View: Timeline chart -->
+                    <div id="continuousView" class="projection-view" style="display: none;">
+                        <div id="projChartContinuous" class="continuous-chart"></div>
                     </div>
                 </div>
             </section>

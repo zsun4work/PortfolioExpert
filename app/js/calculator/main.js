@@ -53,6 +53,10 @@ const Calculator = {
             CalculatorState.setLookbackWindow(parseInt(e.target.value) || 252);
         });
         
+        document.getElementById('leverageRate')?.addEventListener('change', (e) => {
+            CalculatorState.setLeverageRate(parseFloat(e.target.value) || 1);
+        });
+        
         // Calculate button
         document.getElementById('calculateBtn')?.addEventListener('click', () => this.calculate());
     },
@@ -235,6 +239,7 @@ const Calculator = {
             // Update config from UI
             CalculatorState.setTargetCash(CalculatorUI.getTargetCash());
             CalculatorState.setLookbackWindow(CalculatorUI.getLookbackWindow());
+            CalculatorState.setLeverageRate(CalculatorUI.getLeverageRate());
             
             // Ensure we have latest prices
             if (Object.keys(CalculatorState.prices).length === 0) {

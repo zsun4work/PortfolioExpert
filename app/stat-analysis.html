@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stat Analysis - Portfolio Expert</title>
+    
+    <!-- Styles -->
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/stat-analysis.css">
+    
+    <!-- Flatpickr for date picking -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/dark.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="header-left">
+                <h1>📈 Portfolio Expert</h1>
+                <nav class="main-nav">
+                    <a href="stat-analysis.html" class="nav-tab active">Stat Analysis</a>
+                    <a href="index.html" class="nav-tab">Backtest</a>
+                    <a href="calculator.html" class="nav-tab">Calculator</a>
+                </nav>
+            </div>
+            <div class="header-right">
+                <button id="settingsBtn" class="icon-btn" title="Settings">⚙️</button>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Left Panel: Configuration -->
+            <aside class="config-panel">
+                <!-- Asset Selection Section -->
+                <section class="panel-section">
+                    <h2 class="section-title">
+                        <span class="icon">📊</span>
+                        Asset Selection
+                    </h2>
+                    
+                    <div class="ticker-input-group">
+                        <input 
+                            type="text" 
+                            id="tickerInput" 
+                            placeholder="SPY, QQQ, GLD (comma-separated)"
+                            autocomplete="off"
+                        >
+                        <button id="addTickerBtn" class="btn btn-primary">+ Add</button>
+                    </div>
+                    
+                    <div class="action-buttons">
+                        <button id="loadDataBtn" class="btn btn-secondary">
+                            <span class="icon">📥</span> Load Data
+                        </button>
+                        <button id="importFromBacktestBtn" class="btn btn-secondary" title="Import tickers from Backtest tab">
+                            <span class="icon">📋</span> Import from Backtest
+                        </button>
+                    </div>
+                    
+                    <div id="selectedTickers" class="selected-tickers">
+                        <!-- Ticker chips will be added here -->
+                        <p class="empty-state">No tickers selected</p>
+                    </div>
+                </section>
+
+                <!-- Date Range Section -->
+                <section class="panel-section">
+                    <h2 class="section-title">
+                        <span class="icon">📅</span>
+                        Analysis Period
+                    </h2>
+                    
+                    <div class="date-range-group">
+                        <div class="date-input">
+                            <label for="startDate">Start Date</label>
+                            <input type="text" id="startDate" placeholder="YYYY-MM-DD">
+                        </div>
+                        <span class="date-separator">to</span>
+                        <div class="date-input">
+                            <label for="endDate">End Date</label>
+                            <input type="text" id="endDate" placeholder="YYYY-MM-DD">
+                        </div>
+                    </div>
+
+                    <button id="analyzeBtn" class="btn btn-action" disabled>
+                        <span class="icon">📊</span> Analyze Statistics
+                    </button>
+                </section>
+
+                <!-- Rolling Window Section -->
+                <section class="panel-section" id="rollingWindowSection">
+                    <h2 class="section-title">
+                        <span class="icon">📈</span>
+                        Rolling Windows
+                    </h2>
+                    
+                    <p class="section-description">
+                        Add multiple rolling window sizes to compare dynamic statistics over time.
+                    </p>
+                    
+                    <div id="windowsContainer" class="windows-container">
+                        <!-- Window configs will be added here -->
+                    </div>
+                    
+                    <div class="add-window-group">
+                        <input 
+                            type="number" 
+                            id="newWindowInput" 
+                            placeholder="Days (e.g., 60)"
+                            min="5"
+                            max="500"
+                        >
+                        <button id="addWindowBtn" class="btn btn-secondary">
+                            <span class="icon">➕</span> Add Window
+                        </button>
+                    </div>
+                    
+                    <div class="preset-windows">
+                        <span class="preset-label">Quick add:</span>
+                        <button class="btn btn-small preset-btn" data-window="20">20d</button>
+                        <button class="btn btn-small preset-btn" data-window="60">60d</button>
+                        <button class="btn btn-small preset-btn" data-window="120">120d</button>
+                        <button class="btn btn-small preset-btn" data-window="252">1yr</button>
+                    </div>
+                </section>
+            </aside>
+
+            <!-- Right Panel: Results -->
+            <section class="results-panel">
+                <!-- Summary Statistics -->
+                <div id="summaryContainer" class="summary-container panel-box" style="display: none;">
+                    <div class="section-header">
+                        <h2 class="section-title">
+                            <span class="icon">📋</span>
+                            Summary Statistics (Full Period)
+                        </h2>
+                        <span id="summaryDateRange" class="date-range-badge"></span>
+                    </div>
+                    
+                    <!-- Per-Asset Stats Table -->
+                    <div class="stats-table-container">
+                        <table id="assetStatsTable" class="stats-table">
+                            <thead>
+                                <tr>
+                                    <th>Asset</th>
+                                    <th>Ann. Volatility</th>
+                                    <th>Ann. Expected Return</th>
+                                    <th>Data Points</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Data rows will be added here -->
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- Correlation Matrix -->
+                    <div class="correlation-section">
+                        <h3 class="subsection-title">Correlation Matrix</h3>
+                        <div id="correlationMatrix" class="correlation-matrix">
+                            <!-- Matrix will be rendered here -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Rolling Volatility Chart -->
+                <div id="rollingVolatilityContainer" class="chart-box panel-box" style="display: none;">
+                    <div class="section-header">
+                        <h2 class="section-title">
+                            <span class="icon">📉</span>
+                            Rolling Volatility
+                        </h2>
+                        <div class="chart-legend" id="volChartLegend"></div>
+                    </div>
+                    <div id="rollingVolatilityChart" class="stat-chart-area"></div>
+                </div>
+
+                <!-- Rolling Expected Return Chart -->
+                <div id="rollingReturnContainer" class="chart-box panel-box" style="display: none;">
+                    <div class="section-header">
+                        <h2 class="section-title">
+                            <span class="icon">📈</span>
+                            Rolling Expected Return
+                        </h2>
+                        <div class="chart-legend" id="retChartLegend"></div>
+                    </div>
+                    <div id="rollingReturnChart" class="stat-chart-area"></div>
+                </div>
+
+                <!-- Rolling Correlation Chart -->
+                <div id="rollingCorrelationContainer" class="chart-box panel-box" style="display: none;">
+                    <div class="section-header">
+                        <h2 class="section-title">
+                            <span class="icon">🔗</span>
+                            Rolling Correlation
+                        </h2>
+                        <div class="chart-controls">
+                            <label for="correlationPairSelect">Pair:</label>
+                            <select id="correlationPairSelect">
+                                <!-- Options will be added dynamically -->
+                            </select>
+                        </div>
+                    </div>
+                    <div id="rollingCorrelationChart" class="stat-chart-area"></div>
+                </div>
+
+                <!-- Placeholder -->
+                <div id="placeholderContainer" class="placeholder-container">
+                    <div class="placeholder-content">
+                        <span class="placeholder-icon">📊</span>
+                        <h3>Statistical Analysis</h3>
+                        <p>Select assets and click "Analyze Statistics" to see volatility, correlation, and expected return analysis.</p>
+                        <ul class="feature-list">
+                            <li>📉 Summary statistics over the full period</li>
+                            <li>📈 Dynamic rolling statistics with customizable windows</li>
+                            <li>🔗 Correlation analysis between asset pairs</li>
+                            <li>⚡ Compare multiple rolling windows simultaneously</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Status Bar -->
+        <footer class="status-bar">
+            <div id="statusMessage" class="status-message">Ready</div>
+            <div class="status-indicator">
+                <span id="apiStatus" class="status-dot"></span>
+                <span>API</span>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay" style="display: none;">
+        <div class="loading-spinner"></div>
+        <p id="loadingMessage">Loading...</p>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/stat-analysis.js"></script>
+</body>
+</html>
+

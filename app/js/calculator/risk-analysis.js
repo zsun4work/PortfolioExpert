@@ -171,8 +171,12 @@ const RiskAnalysis = {
         }
         
         const weights = CalculatorState.getWeights();
-        const portfolioValue = CalculatorState.config.targetCash;
+        const targetCash = CalculatorState.config.targetCash;
+        const leverageRate = CalculatorState.config.leverageRate || 1;
         const riskFreeRate = CalculatorState.config.riskFreeRate || 0.05;
+        
+        // Leveraged portfolio value (total position size)
+        const leveragedValue = targetCash * leverageRate;
         
         // Calculate portfolio returns
         const portfolioReturns = this.calculatePortfolioReturns(priceHistory, weights);
@@ -181,42 +185,63 @@ const RiskAnalysis = {
             return null;
         }
         
-        // Calculate metrics
+        // Calculate base (unleveraged) metrics
         const returnStats = this.calculateExpectedReturn(portfolioReturns);
         const volStats = this.calculateVolatility(portfolioReturns);
         
+        // Apply leverage to returns and volatility
+        // Leverage amplifies both gains and losses
+        const leveragedDailyReturn = returnStats.dailyReturn * leverageRate;
+        const leveragedAnnualizedReturn = returnStats.annualizedReturn * leverageRate;
+        const leveragedDailyVolatility = volStats.dailyVolatility * leverageRate;
+        const leveragedAnnualizedVolatility = volStats.annualizedVolatility * leverageRate;
+        
+        // Sharpe ratio calculation (uses leveraged metrics)
+        // Note: Sharpe ratio remains the same with leverage (both return and vol scale equally)
+        // But we calculate based on leveraged values for consistency
         const sharpeRatio = this.calculateSharpeRatio(
-            returnStats.annualizedReturn,
-            volStats.annualizedVolatility,
+            leveragedAnnualizedReturn,
+            leveragedAnnualizedVolatility,
             riskFreeRate
         );
         
-        // Calculate VaR
-        const var95_1d = this.calculateVaR(portfolioValue, volStats.dailyVolatility, 1, 0.95);
-        const var99_1d = this.calculateVaR(portfolioValue, volStats.dailyVolatility, 1, 0.99);
-        const var95_30d = this.calculateVaR(portfolioValue, volStats.dailyVolatility, 30, 0.95);
-        const var99_30d = this.calculateVaR(portfolioValue, volStats.dailyVolatility, 30, 0.99);
+        // Calculate VaR using leveraged portfolio value and leveraged volatility
+        const var95_1d = this.calculateVaR(leveragedValue, leveragedDailyVolatility, 1, 0.95);
+        const var99_1d = this.calculateVaR(leveragedValue, leveragedDailyVolatility, 1, 0.99);
+        const var95_30d = this.calculateVaR(leveragedValue, leveragedDailyVolatility, 30, 0.95);
+        const var99_30d = this.calculateVaR(leveragedValue, leveragedDailyVolatility, 30, 0.99);
         
         const metrics = {
-            // Return metrics
-            dailyReturn: returnStats.dailyReturn,
-            annualizedReturn: returnStats.annualizedReturn,
+            // Return metrics (leveraged)
+            dailyReturn: leveragedDailyReturn,
+            annualizedReturn: leveragedAnnualizedReturn,
             
-            // Volatility metrics
-            dailyVolatility: volStats.dailyVolatility,
-            annualizedVolatility: volStats.annualizedVolatility,
+            // Volatility metrics (leveraged)
+            dailyVolatility: leveragedDailyVolatility,
+            annualizedVolatility: leveragedAnnualizedVolatility,
+            
+            // Base (unleveraged) metrics for projection calculations
+            baseDailyReturn: returnStats.dailyReturn,
+            baseDailyVolatility: volStats.dailyVolatility,
+            baseAnnualizedReturn: returnStats.annualizedReturn,
+            baseAnnualizedVolatility: volStats.annualizedVolatility,
             
             // Risk-adjusted
             sharpeRatio: sharpeRatio,
             riskFreeRate: riskFreeRate,
             
-            // VaR
+            // VaR (based on leveraged position)
             var95_1d: var95_1d,
             var99_1d: var99_1d,
             var95_30d: var95_30d,
             var99_30d: var99_30d,
             
-            // Raw data for projection
+            // Leverage info
+            leverageRate: leverageRate,
+            leveragedValue: leveragedValue,
+            baseCash: targetCash,
+            
+            // Raw data for projection (base unleveraged returns)
             portfolioReturns: portfolioReturns,
             dataPoints: portfolioReturns.length,
         };

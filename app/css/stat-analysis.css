@@ -1,0 +1,556 @@
+/* ============================================================================
+   Stat Analysis Page - Specific Styles
+   ============================================================================ */
+
+/* --------------------------------------------------------------------------
+   Panel Box (shared for all result containers)
+   -------------------------------------------------------------------------- */
+.panel-box {
+    background: var(--color-bg-secondary);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--color-border);
+    padding: var(--spacing-lg);
+    margin-bottom: var(--spacing-lg);
+}
+
+.panel-box:last-child {
+    margin-bottom: 0;
+}
+
+/* --------------------------------------------------------------------------
+   Section Description
+   -------------------------------------------------------------------------- */
+.section-description {
+    font-size: var(--font-size-xs);
+    color: var(--color-text-muted);
+    margin-bottom: var(--spacing-md);
+    line-height: 1.6;
+}
+
+/* --------------------------------------------------------------------------
+   Rolling Windows Configuration
+   -------------------------------------------------------------------------- */
+.windows-container {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-md);
+    min-height: 40px;
+}
+
+.window-chip {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--spacing-sm) var(--spacing-md);
+    background: var(--color-bg-primary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    transition: all var(--transition-fast);
+}
+
+.window-chip.active {
+    border-color: var(--color-accent);
+    background: var(--color-accent-muted);
+}
+
+.window-chip-info {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.window-chip-value {
+    font-weight: 600;
+    font-size: var(--font-size-sm);
+    color: var(--color-text-primary);
+}
+
+.window-chip-color {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+}
+
+.window-chip-toggle {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.window-chip-toggle input[type="checkbox"] {
+    width: 14px;
+    height: 14px;
+    accent-color: var(--color-accent);
+}
+
+.window-chip .remove-btn {
+    background: none;
+    border: none;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    font-size: var(--font-size-lg);
+    padding: 0;
+    line-height: 1;
+    opacity: 0.7;
+    transition: all var(--transition-fast);
+}
+
+.window-chip .remove-btn:hover {
+    color: var(--color-danger);
+    opacity: 1;
+}
+
+.add-window-group {
+    display: flex;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-md);
+}
+
+.add-window-group input {
+    flex: 1;
+    min-width: 80px;
+}
+
+.preset-windows {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.preset-label {
+    font-size: var(--font-size-xs);
+    color: var(--color-text-muted);
+}
+
+.preset-btn {
+    padding: var(--spacing-xs) var(--spacing-sm) !important;
+    font-size: var(--font-size-xs) !important;
+    background: var(--color-bg-primary);
+    border: 1px solid var(--color-border);
+    color: var(--color-text-secondary);
+}
+
+.preset-btn:hover {
+    border-color: var(--color-accent);
+    color: var(--color-accent);
+}
+
+.preset-btn.added {
+    background: var(--color-accent-muted);
+    border-color: var(--color-accent);
+    color: var(--color-accent);
+}
+
+/* --------------------------------------------------------------------------
+   Summary Container
+   -------------------------------------------------------------------------- */
+.summary-container .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-lg);
+}
+
+.date-range-badge {
+    font-size: var(--font-size-xs);
+    color: var(--color-text-muted);
+    background: var(--color-bg-primary);
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-radius: var(--radius-full);
+    border: 1px solid var(--color-border);
+}
+
+/* --------------------------------------------------------------------------
+   Stats Table
+   -------------------------------------------------------------------------- */
+.stats-table-container {
+    overflow-x: auto;
+    margin-bottom: var(--spacing-lg);
+}
+
+.stats-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--font-size-sm);
+}
+
+.stats-table th,
+.stats-table td {
+    padding: var(--spacing-sm) var(--spacing-md);
+    text-align: left;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.stats-table th {
+    font-weight: 600;
+    color: var(--color-text-secondary);
+    text-transform: uppercase;
+    font-size: var(--font-size-xs);
+    letter-spacing: 0.05em;
+    background: var(--color-bg-tertiary);
+}
+
+.stats-table td {
+    color: var(--color-text-primary);
+}
+
+.stats-table tbody tr:hover {
+    background: var(--color-bg-tertiary);
+}
+
+.stats-table .ticker-cell {
+    font-weight: 600;
+    color: var(--color-accent);
+}
+
+.stats-table .stat-value {
+    font-family: var(--font-family);
+}
+
+.stats-table .stat-positive {
+    color: var(--color-success);
+}
+
+.stats-table .stat-negative {
+    color: var(--color-danger);
+}
+
+/* --------------------------------------------------------------------------
+   Correlation Matrix
+   -------------------------------------------------------------------------- */
+.correlation-section {
+    padding-top: var(--spacing-lg);
+    border-top: 1px solid var(--color-border);
+}
+
+.subsection-title {
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    color: var(--color-text-secondary);
+    margin-bottom: var(--spacing-md);
+}
+
+.correlation-matrix {
+    overflow-x: auto;
+}
+
+.corr-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--font-size-sm);
+}
+
+.corr-table th,
+.corr-table td {
+    padding: var(--spacing-sm);
+    text-align: center;
+    min-width: 60px;
+}
+
+.corr-table th {
+    font-weight: 600;
+    color: var(--color-accent);
+    background: var(--color-bg-tertiary);
+}
+
+.corr-table th:first-child {
+    text-align: left;
+}
+
+.corr-table td:first-child {
+    font-weight: 600;
+    color: var(--color-accent);
+    text-align: left;
+    background: var(--color-bg-tertiary);
+}
+
+.corr-cell {
+    font-family: var(--font-family);
+    position: relative;
+}
+
+.corr-cell.diagonal {
+    background: var(--color-bg-primary);
+    color: var(--color-text-muted);
+}
+
+/* Correlation color scale */
+.corr-cell.corr-high-pos {
+    background: rgba(16, 185, 129, 0.4);
+    color: var(--color-success);
+}
+
+.corr-cell.corr-med-pos {
+    background: rgba(16, 185, 129, 0.2);
+    color: var(--color-success);
+}
+
+.corr-cell.corr-low {
+    background: transparent;
+    color: var(--color-text-primary);
+}
+
+.corr-cell.corr-med-neg {
+    background: rgba(239, 68, 68, 0.2);
+    color: var(--color-danger);
+}
+
+.corr-cell.corr-high-neg {
+    background: rgba(239, 68, 68, 0.4);
+    color: var(--color-danger);
+}
+
+/* --------------------------------------------------------------------------
+   Chart Boxes
+   -------------------------------------------------------------------------- */
+.chart-box {
+    position: relative;
+}
+
+.chart-box .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-md);
+    flex-wrap: wrap;
+    gap: var(--spacing-sm);
+}
+
+.chart-box .section-header .section-title {
+    margin-bottom: 0;
+}
+
+.stat-chart-area {
+    height: 280px;
+    min-height: 200px;
+}
+
+.chart-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-sm);
+    font-size: var(--font-size-xs);
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    color: var(--color-text-secondary);
+}
+
+.legend-color {
+    width: 12px;
+    height: 3px;
+    border-radius: 1px;
+}
+
+.legend-color-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+}
+
+.legend-separator {
+    color: var(--color-text-muted);
+    margin: 0 var(--spacing-sm);
+}
+
+.legend-line {
+    width: 20px;
+    height: 2px;
+    display: inline-block;
+    background: var(--color-text-secondary);
+}
+
+.legend-line-solid {
+    background: var(--color-text-secondary);
+}
+
+.legend-line-dashed {
+    background: repeating-linear-gradient(
+        90deg,
+        var(--color-text-secondary) 0px,
+        var(--color-text-secondary) 6px,
+        transparent 6px,
+        transparent 10px
+    );
+}
+
+.legend-line-dotted {
+    background: repeating-linear-gradient(
+        90deg,
+        var(--color-text-secondary) 0px,
+        var(--color-text-secondary) 2px,
+        transparent 2px,
+        transparent 6px
+    );
+}
+
+.legend-line-dash-dot {
+    background: repeating-linear-gradient(
+        90deg,
+        var(--color-text-secondary) 0px,
+        var(--color-text-secondary) 6px,
+        transparent 6px,
+        transparent 8px,
+        var(--color-text-secondary) 8px,
+        var(--color-text-secondary) 10px,
+        transparent 10px,
+        transparent 14px
+    );
+}
+
+/* Ticker chip with color indicator */
+.selected-tickers .ticker-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+}
+
+.ticker-chip .ticker-color-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+/* Action buttons wrap on smaller screens */
+.action-buttons {
+    flex-wrap: wrap;
+}
+
+.chart-controls {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.chart-controls label {
+    font-size: var(--font-size-xs);
+    color: var(--color-text-secondary);
+    margin-bottom: 0;
+    text-transform: none;
+}
+
+.chart-controls select {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    background: var(--color-bg-primary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    color: var(--color-text-primary);
+    font-family: var(--font-family);
+    font-size: var(--font-size-xs);
+    min-width: 120px;
+}
+
+.chart-controls select:focus {
+    outline: none;
+    border-color: var(--color-accent);
+}
+
+/* --------------------------------------------------------------------------
+   Placeholder
+   -------------------------------------------------------------------------- */
+.placeholder-container {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 400px;
+}
+
+.placeholder-content {
+    text-align: center;
+    max-width: 400px;
+    padding: var(--spacing-xl);
+}
+
+.placeholder-content .placeholder-icon {
+    font-size: 4rem;
+    display: block;
+    margin-bottom: var(--spacing-md);
+    opacity: 0.3;
+}
+
+.placeholder-content h3 {
+    font-family: var(--font-family-display);
+    font-size: var(--font-size-xl);
+    color: var(--color-text-primary);
+    margin-bottom: var(--spacing-sm);
+}
+
+.placeholder-content p {
+    color: var(--color-text-muted);
+    margin-bottom: var(--spacing-lg);
+    line-height: 1.6;
+}
+
+.feature-list {
+    list-style: none;
+    text-align: left;
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-sm);
+}
+
+.feature-list li {
+    padding: var(--spacing-xs) 0;
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+/* --------------------------------------------------------------------------
+   Window Colors (for consistent chart coloring)
+   -------------------------------------------------------------------------- */
+.window-color-0 { background-color: #f59e0b; } /* Amber */
+.window-color-1 { background-color: #3b82f6; } /* Blue */
+.window-color-2 { background-color: #10b981; } /* Green */
+.window-color-3 { background-color: #8b5cf6; } /* Purple */
+.window-color-4 { background-color: #ef4444; } /* Red */
+.window-color-5 { background-color: #ec4899; } /* Pink */
+.window-color-6 { background-color: #06b6d4; } /* Cyan */
+.window-color-7 { background-color: #84cc16; } /* Lime */
+
+/* --------------------------------------------------------------------------
+   Responsive Adjustments
+   -------------------------------------------------------------------------- */
+@media (max-width: 1200px) {
+    .stat-chart-area {
+        height: 250px;
+    }
+}
+
+@media (max-width: 1024px) {
+    .summary-container .section-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .date-range-badge {
+        margin-top: var(--spacing-sm);
+    }
+    
+    .chart-box .section-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}
+
+@media (max-width: 640px) {
+    .preset-windows {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .add-window-group {
+        flex-direction: column;
+    }
+    
+    .add-window-group .btn {
+        width: 100%;
+    }
+}
+

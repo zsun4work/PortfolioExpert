@@ -251,7 +251,7 @@ const CalculatorUI = {
     
     /**
      * Render projection summary
-     * @param {Object} projection - Projection data
+     * @param {Object} projection - Projection data (360d projection)
      */
     renderProjectionSummary(projection) {
         const card = document.getElementById('projectionCard');
@@ -269,6 +269,9 @@ const CalculatorUI = {
         document.getElementById('projExpectedValue').textContent = formatMoney(projection.expectedValue);
         document.getElementById('projRange95').textContent = 
             `${formatMoney(projection.intervals.p95.low)} - ${formatMoney(projection.intervals.p95.high)}`;
+        
+        // Reset to distribution view by default
+        Projection.switchView('distribution');
     },
     
     // =========================================================================
@@ -368,6 +371,15 @@ const CalculatorUI = {
     },
     
     /**
+     * Get leverage rate from input
+     * @returns {number} Leverage rate (1 = no leverage)
+     */
+    getLeverageRate() {
+        const input = document.getElementById('leverageRate');
+        return parseFloat(input?.value) || 1;
+    },
+    
+    /**
      * Get new asset input values
      * @returns {Object} {ticker, weight}
      */
@@ -399,9 +411,11 @@ const CalculatorUI = {
         // Set initial values from state
         const targetInput = document.getElementById('targetCash');
         const lookbackInput = document.getElementById('lookbackWindow');
+        const leverageInput = document.getElementById('leverageRate');
         
         if (targetInput) targetInput.value = CalculatorState.config.targetCash;
         if (lookbackInput) lookbackInput.value = CalculatorState.config.lookbackWindow;
+        if (leverageInput) leverageInput.value = CalculatorState.config.leverageRate || 1;
         
         // Render assets
         this.renderAssetsList();

@@ -471,9 +471,56 @@
    -------------------------------------------------------------------------- */
 .projection-card {
     flex: 1;
-    min-height: 400px;
+    min-height: 500px;
     display: flex;
     flex-direction: column;
+}
+
+.card-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-md);
+}
+
+.card-header-row .card-title {
+    margin-bottom: 0;
+}
+
+/* View Toggle Switch */
+.view-toggle {
+    display: flex;
+    gap: var(--spacing-xs);
+    background: var(--color-bg-tertiary);
+    padding: var(--spacing-xs);
+    border-radius: var(--radius-md);
+}
+
+.toggle-btn {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    padding: var(--spacing-xs) var(--spacing-sm);
+    background: transparent;
+    border: none;
+    border-radius: var(--radius-sm);
+    color: var(--color-text-muted);
+    font-size: var(--font-size-xs);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.toggle-btn:hover {
+    color: var(--color-text-secondary);
+}
+
+.toggle-btn.active {
+    background: var(--color-accent);
+    color: var(--color-bg-primary);
+}
+
+.toggle-btn .icon {
+    font-size: 12px;
 }
 
 .projection-summary {
@@ -509,6 +556,53 @@
 .projection-stat .stat-value.range {
     font-size: var(--font-size-base);
     color: var(--color-text-secondary);
+}
+
+/* Projection Views */
+.projection-view {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Distribution Grid (2x2) */
+.projection-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    grid-template-rows: repeat(2, 1fr);
+    gap: var(--spacing-md);
+    flex: 1;
+    min-height: 400px;
+}
+
+.projection-subfig {
+    display: flex;
+    flex-direction: column;
+    background: var(--color-bg-tertiary);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-sm);
+    min-height: 180px;
+}
+
+.subfig-label {
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+    color: var(--color-text-secondary);
+    text-align: center;
+    padding-bottom: var(--spacing-xs);
+    border-bottom: 1px solid var(--color-border);
+    margin-bottom: var(--spacing-xs);
+}
+
+.subfig-chart {
+    flex: 1;
+    min-height: 140px;
+}
+
+/* Continuous Chart */
+.continuous-chart {
+    flex: 1;
+    min-height: 350px;
 }
 
 .projection-chart {

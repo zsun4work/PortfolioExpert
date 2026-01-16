@@ -133,12 +133,16 @@ const PositionCalculator = {
      */
     calculate() {
         const targetCash = CalculatorState.config.targetCash;
+        const leverageRate = CalculatorState.config.leverageRate || 1;
         const weights = CalculatorState.getWeights();
         const prices = CalculatorState.prices;
         const holdings = CalculatorState.getCurrentHoldings();
         
-        // Calculate positions
-        const positions = this.calculateTargetPositions(targetCash, weights, prices);
+        // Apply leverage to get effective buying power
+        const leveragedCash = targetCash * leverageRate;
+        
+        // Calculate positions with leveraged buying power
+        const positions = this.calculateTargetPositions(leveragedCash, weights, prices);
         
         // Calculate trade orders
         const orders = this.calculateTradeOrders(positions, holdings);
