@@ -243,6 +243,84 @@ const CalculatorUI = {
         
         document.getElementById('var95').textContent = formatMoney(metrics.var95_30d);
         document.getElementById('var99').textContent = formatMoney(metrics.var99_30d);
+        
+        // Render correlation matrix if available
+        if (metrics.correlation) {
+            this.renderCorrelationMatrix(metrics.correlation, metrics.dataPoints);
+        }
+    },
+    
+    // =========================================================================
+    // Correlation Matrix
+    // =========================================================================
+    
+    /**
+     * Render correlation matrix
+     * @param {Object} correlationData - {tickers: [], matrix: [][], commonDates: number}
+     * @param {number} dataPoints - Number of data points used for portfolio
+     */
+    renderCorrelationMatrix(correlationData, dataPoints) {
+        const card = document.getElementById('correlationCard');
+        const container = document.getElementById('correlationMatrix');
+        const lookbackInfo = document.getElementById('correlationLookback');
+        
+        if (!correlationData || correlationData.tickers.length === 0) {
+            card.style.display = 'none';
+            return;
+        }
+        
+        card.style.display = 'block';
+        
+        // Update lookback info - show common dates used for correlation
+        if (lookbackInfo) {
+            const commonDates = correlationData.commonDates || dataPoints;
+            lookbackInfo.textContent = `(${commonDates} common trading days)`;
+        }
+        
+        const { tickers, matrix } = correlationData;
+        
+        // Build table HTML
+        let html = '<table class="correlation-table">';
+        
+        // Header row
+        html += '<thead><tr><th></th>';
+        for (const ticker of tickers) {
+            html += `<th>${ticker}</th>`;
+        }
+        html += '</tr></thead>';
+        
+        // Data rows
+        html += '<tbody>';
+        for (let i = 0; i < tickers.length; i++) {
+            html += `<tr><th class="row-header">${tickers[i]}</th>`;
+            for (let j = 0; j < tickers.length; j++) {
+                const corr = matrix[i][j];
+                const colorClass = this.getCorrelationColorClass(corr, i === j);
+                const displayValue = i === j ? '1.00' : corr.toFixed(2);
+                html += `<td><span class="corr-cell ${colorClass}">${displayValue}</span></td>`;
+            }
+            html += '</tr>';
+        }
+        html += '</tbody></table>';
+        
+        container.innerHTML = html;
+    },
+    
+    /**
+     * Get color class for correlation value
+     * @param {number} corr - Correlation value (-1 to 1)
+     * @param {boolean} isDiagonal - Is this a diagonal cell
+     * @returns {string} CSS class name
+     */
+    getCorrelationColorClass(corr, isDiagonal) {
+        if (isDiagonal) return 'diagonal';
+        
+        if (corr >= 0.7) return 'positive-high';
+        if (corr >= 0.4) return 'positive-med';
+        if (corr >= 0) return 'positive-low';
+        if (corr >= -0.4) return 'negative-low';
+        if (corr >= -0.7) return 'negative-med';
+        return 'negative-high';
     },
     
     // =========================================================================

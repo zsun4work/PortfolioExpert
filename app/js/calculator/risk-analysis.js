@@ -159,6 +159,138 @@ const RiskAnalysis = {
     },
     
     /**
+     * Calculate daily returns WITH dates from price history
+     * @param {Array} prices - Array of {date, adjClose}
+     * @returns {Array} Array of {date, return}
+     */
+    calculateDailyReturnsWithDates(prices) {
+        if (!prices || prices.length < 2) {
+            return [];
+        }
+        
+        const returns = [];
+        for (let i = 1; i < prices.length; i++) {
+            const prevPrice = prices[i - 1].adjClose;
+            const currPrice = prices[i].adjClose;
+            if (prevPrice > 0) {
+                returns.push({
+                    date: prices[i].date,
+                    return: (currPrice - prevPrice) / prevPrice,
+                });
+            }
+        }
+        return returns;
+    },
+    
+    /**
+     * Calculate correlation between two assets using date-aligned returns
+     * @param {Array} returns1 - First return series with dates [{date, return}]
+     * @param {Array} returns2 - Second return series with dates [{date, return}]
+     * @returns {number} Correlation coefficient (-1 to 1)
+     */
+    calculateCorrelation(returns1, returns2) {
+        // Create date -> return maps for fast lookup
+        const map1 = new Map();
+        const map2 = new Map();
+        
+        for (const r of returns1) {
+            map1.set(r.date, r.return);
+        }
+        for (const r of returns2) {
+            map2.set(r.date, r.return);
+        }
+        
+        // Find common dates and build aligned arrays
+        const aligned1 = [];
+        const aligned2 = [];
+        
+        for (const [date, ret1] of map1) {
+            if (map2.has(date)) {
+                aligned1.push(ret1);
+                aligned2.push(map2.get(date));
+            }
+        }
+        
+        const n = aligned1.length;
+        if (n < 2) return 0;
+        
+        // Calculate means
+        const mean1 = this.mean(aligned1);
+        const mean2 = this.mean(aligned2);
+        
+        // Calculate correlation
+        let sumProduct = 0;
+        let sumSq1 = 0;
+        let sumSq2 = 0;
+        
+        for (let i = 0; i < n; i++) {
+            const diff1 = aligned1[i] - mean1;
+            const diff2 = aligned2[i] - mean2;
+            sumProduct += diff1 * diff2;
+            sumSq1 += diff1 * diff1;
+            sumSq2 += diff2 * diff2;
+        }
+        
+        const denom = Math.sqrt(sumSq1 * sumSq2);
+        if (denom === 0) return 0;
+        
+        return sumProduct / denom;
+    },
+    
+    /**
+     * Calculate correlation matrix for all assets
+     * @param {Object} priceHistory - {ticker: [{date, adjClose}]}
+     * @returns {Object} {tickers: [], matrix: [][], commonDates: number}
+     */
+    calculateCorrelationMatrix(priceHistory) {
+        const tickers = Object.keys(priceHistory);
+        const n = tickers.length;
+        
+        if (n === 0) return { tickers: [], matrix: [], commonDates: 0 };
+        
+        // Calculate returns WITH dates for each asset
+        const assetReturns = {};
+        for (const ticker of tickers) {
+            assetReturns[ticker] = this.calculateDailyReturnsWithDates(priceHistory[ticker]);
+        }
+        
+        // Build correlation matrix
+        const matrix = [];
+        let minCommonDates = Infinity;
+        
+        for (let i = 0; i < n; i++) {
+            const row = [];
+            for (let j = 0; j < n; j++) {
+                if (i === j) {
+                    row.push(1.0); // Self-correlation is 1
+                } else if (j < i) {
+                    row.push(matrix[j][i]); // Matrix is symmetric
+                } else {
+                    // Calculate correlation with date alignment
+                    const corr = this.calculateCorrelation(
+                        assetReturns[tickers[i]],
+                        assetReturns[tickers[j]]
+                    );
+                    row.push(corr);
+                    
+                    // Track common dates for info
+                    const dates1 = new Set(assetReturns[tickers[i]].map(r => r.date));
+                    const dates2 = new Set(assetReturns[tickers[j]].map(r => r.date));
+                    const commonCount = [...dates1].filter(d => dates2.has(d)).length;
+                    minCommonDates = Math.min(minCommonDates, commonCount);
+                }
+            }
+            matrix.push(row);
+        }
+        
+        return { 
+            tickers, 
+            matrix, 
+            commonDates: minCommonDates === Infinity ? 0 : minCommonDates 
+        };
+    },
+    
+    /**
      * Run full risk analysis
      * @param {Object} priceHistory - {ticker: [{date, adjClose}]}
      * @returns {Object} Complete risk metrics
@@ -211,6 +343,9 @@ const RiskAnalysis = {
         const var95_30d = this.calculateVaR(leveragedValue, leveragedDailyVolatility, 30, 0.95);
         const var99_30d = this.calculateVaR(leveragedValue, leveragedDailyVolatility, 30, 0.99);
         
+        // Calculate correlation matrix
+        const correlationData = this.calculateCorrelationMatrix(priceHistory);
+        
         const metrics = {
             // Return metrics (leveraged)
             dailyReturn: leveragedDailyReturn,
@@ -235,6 +370,9 @@ const RiskAnalysis = {
             var99_1d: var99_1d,
             var95_30d: var95_30d,
             var99_30d: var99_30d,
+            
+            // Correlation matrix
+            correlation: correlationData,
             
             // Leverage info
             leverageRate: leverageRate,

@@ -467,6 +467,95 @@
 }
 
 /* --------------------------------------------------------------------------
+   Correlation Matrix
+   -------------------------------------------------------------------------- */
+.correlation-matrix {
+    overflow-x: auto;
+}
+
+.correlation-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--font-size-sm);
+}
+
+.correlation-table th,
+.correlation-table td {
+    padding: var(--spacing-sm);
+    text-align: center;
+    border: 1px solid var(--color-border);
+    min-width: 60px;
+}
+
+.correlation-table th {
+    background: var(--color-bg-tertiary);
+    font-weight: 600;
+    color: var(--color-accent);
+}
+
+.correlation-table th.row-header {
+    text-align: right;
+    padding-right: var(--spacing-md);
+}
+
+.correlation-table td {
+    font-family: var(--font-mono);
+    font-weight: 500;
+    transition: transform var(--transition-fast);
+}
+
+.correlation-table td:hover {
+    transform: scale(1.05);
+}
+
+/* Correlation value coloring */
+.corr-cell {
+    border-radius: var(--radius-sm);
+}
+
+.corr-cell.positive-high {
+    background: rgba(16, 185, 129, 0.4);
+    color: #10b981;
+}
+
+.corr-cell.positive-med {
+    background: rgba(16, 185, 129, 0.2);
+    color: #34d399;
+}
+
+.corr-cell.positive-low {
+    background: rgba(16, 185, 129, 0.1);
+    color: var(--color-text-secondary);
+}
+
+.corr-cell.negative-low {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--color-text-secondary);
+}
+
+.corr-cell.negative-med {
+    background: rgba(239, 68, 68, 0.2);
+    color: #f87171;
+}
+
+.corr-cell.negative-high {
+    background: rgba(239, 68, 68, 0.4);
+    color: #ef4444;
+}
+
+.corr-cell.diagonal {
+    background: var(--color-bg-tertiary);
+    color: var(--color-text-muted);
+}
+
+.lookback-info {
+    font-size: var(--font-size-xs);
+    font-weight: 400;
+    color: var(--color-text-muted);
+    margin-left: var(--spacing-sm);
+}
+
+/* --------------------------------------------------------------------------
    Projection Card
    -------------------------------------------------------------------------- */
 .projection-card {
