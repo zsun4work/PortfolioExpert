@@ -1,0 +1,303 @@
+/**
+ * Futures Monitor Styles
+ */
+
+/* --------------------------------------------------------------------------
+   Layout
+   -------------------------------------------------------------------------- */
+.futures-main {
+    display: flex;
+    justify-content: center;
+    padding: var(--spacing-lg);
+    overflow-y: auto;
+}
+
+.futures-container {
+    max-width: 1200px;
+    width: 100%;
+}
+
+.page-header {
+    margin-bottom: var(--spacing-lg);
+    text-align: center;
+}
+
+.page-header h2 {
+    font-size: var(--font-size-2xl);
+    color: var(--color-text-primary);
+    margin-bottom: var(--spacing-xs);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-sm);
+}
+
+.page-header .subtitle {
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-sm);
+}
+
+/* --------------------------------------------------------------------------
+   Status Bar
+   -------------------------------------------------------------------------- */
+.status-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--spacing-sm) var(--spacing-md);
+    background: var(--color-bg-secondary);
+    border-radius: var(--radius-md);
+    margin-bottom: var(--spacing-lg);
+    font-size: var(--font-size-sm);
+}
+
+#statusText {
+    color: var(--color-text-secondary);
+}
+
+.update-time {
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-xs);
+    margin-right: var(--spacing-md);
+}
+
+/* --------------------------------------------------------------------------
+   Futures Grid
+   -------------------------------------------------------------------------- */
+.futures-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: var(--spacing-lg);
+    margin-bottom: var(--spacing-xl);
+}
+
+/* --------------------------------------------------------------------------
+   Futures Card
+   -------------------------------------------------------------------------- */
+.futures-card {
+    background: var(--color-bg-secondary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.futures-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+.futures-card.loading {
+    opacity: 0.7;
+}
+
+.futures-card.error {
+    border-color: var(--color-danger);
+}
+
+.card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--spacing-md);
+    background: var(--color-bg-tertiary);
+    border-bottom: 1px solid var(--color-border);
+}
+
+.card-title {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.card-icon {
+    font-size: 1.5rem;
+}
+
+.card-title h3 {
+    font-size: var(--font-size-md);
+    font-weight: 600;
+    color: var(--color-text-primary);
+    margin: 0;
+}
+
+.card-badge {
+    background: var(--color-accent);
+    color: var(--color-bg-primary);
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+    font-family: var(--font-mono);
+}
+
+.card-body {
+    padding: var(--spacing-md);
+}
+
+/* --------------------------------------------------------------------------
+   Price Row
+   -------------------------------------------------------------------------- */
+.price-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-md);
+}
+
+.price-item {
+    text-align: center;
+}
+
+.price-item label {
+    display: block;
+    font-size: var(--font-size-xs);
+    color: var(--color-text-secondary);
+    margin-bottom: var(--spacing-xs);
+}
+
+.price-item .price {
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+    color: var(--color-text-primary);
+    font-family: var(--font-mono);
+}
+
+/* --------------------------------------------------------------------------
+   Basis Row
+   -------------------------------------------------------------------------- */
+.basis-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--spacing-md);
+    padding: var(--spacing-md);
+    background: var(--color-bg-tertiary);
+    border-radius: var(--radius-md);
+    margin-bottom: var(--spacing-sm);
+}
+
+.basis-item {
+    text-align: center;
+}
+
+.basis-item.highlight {
+    background: rgba(245, 158, 11, 0.1);
+    border-radius: var(--radius-sm);
+    padding: var(--spacing-xs);
+}
+
+.basis-item label {
+    display: block;
+    font-size: var(--font-size-xs);
+    color: var(--color-text-secondary);
+    margin-bottom: var(--spacing-xs);
+}
+
+.basis-value {
+    font-size: var(--font-size-md);
+    font-weight: 700;
+    font-family: var(--font-mono);
+}
+
+.basis-value.positive {
+    color: var(--color-danger);
+}
+
+.basis-value.negative {
+    color: var(--color-success);
+}
+
+.basis-value.annualized {
+    font-size: var(--font-size-lg);
+}
+
+/* --------------------------------------------------------------------------
+   Expiry Info
+   -------------------------------------------------------------------------- */
+.expiry-info {
+    display: flex;
+    justify-content: space-between;
+    font-size: var(--font-size-xs);
+    color: var(--color-text-secondary);
+    padding-top: var(--spacing-sm);
+    border-top: 1px solid var(--color-border);
+}
+
+/* --------------------------------------------------------------------------
+   Info Section
+   -------------------------------------------------------------------------- */
+.info-section {
+    background: var(--color-bg-secondary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-lg);
+}
+
+.info-section h3 {
+    font-size: var(--font-size-md);
+    color: var(--color-text-primary);
+    margin-bottom: var(--spacing-md);
+}
+
+.info-content {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+    line-height: 1.6;
+}
+
+.info-content p {
+    margin-bottom: var(--spacing-sm);
+}
+
+.info-content ul {
+    margin: var(--spacing-sm) 0;
+    padding-left: var(--spacing-lg);
+}
+
+.info-content li {
+    margin-bottom: var(--spacing-xs);
+}
+
+.info-content .positive {
+    color: var(--color-danger);
+    font-weight: 500;
+}
+
+.info-content .negative {
+    color: var(--color-success);
+    font-weight: 500;
+}
+
+.info-content .note {
+    font-style: italic;
+    color: var(--color-text-tertiary);
+    font-size: var(--font-size-xs);
+    margin-top: var(--spacing-md);
+}
+
+/* --------------------------------------------------------------------------
+   Loading Animation
+   -------------------------------------------------------------------------- */
+@keyframes pulse {
+    0%, 100% { opacity: 0.5; }
+    50% { opacity: 1; }
+}
+
+.futures-card.loading .price,
+.futures-card.loading .basis-value {
+    animation: pulse 1.5s ease-in-out infinite;
+    color: var(--color-text-tertiary);
+}
+
+/* --------------------------------------------------------------------------
+   Responsive
+   -------------------------------------------------------------------------- */
+@media (max-width: 768px) {
+    .futures-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .page-header h2 {
+        font-size: var(--font-size-xl);
+    }
+}

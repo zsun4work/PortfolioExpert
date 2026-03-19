@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Futures Monitor - Portfolio Expert</title>
+    
+    <!-- Styles -->
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/futures-monitor.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="header-left">
+                <h1>📈 Portfolio Expert</h1>
+                <nav class="main-nav">
+                    <a href="stat-analysis.html" class="nav-tab">Stat Analysis</a>
+                    <a href="index.html" class="nav-tab">Backtest</a>
+                    <a href="calculator.html" class="nav-tab">Calculator</a>
+                    <a href="futures-monitor.html" class="nav-tab active">Futures Monitor</a>
+                </nav>
+            </div>
+            <div class="header-right">
+                <span id="lastUpdateTime" class="update-time"></span>
+                <button id="refreshBtn" class="btn btn-primary btn-sm" title="Refresh Data">
+                    <span class="icon">🔄</span> Refresh
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content futures-main">
+            <div class="futures-container">
+                <!-- Page Title -->
+                <div class="page-header">
+                    <h2>
+                        <span class="icon">📊</span>
+                        Futures Basis Monitor
+                    </h2>
+                    <p class="subtitle">Track the cost of holding futures vs spot positions (annualized carry cost)</p>
+                </div>
+
+                <!-- Status Bar -->
+                <div id="statusBar" class="status-bar">
+                    <span id="statusText">Loading...</span>
+                    <span id="apiStatus" class="api-indicator">
+                        <span class="dot"></span>
+                        <span class="label">API</span>
+                    </span>
+                </div>
+
+                <!-- Futures Cards Grid -->
+                <div class="futures-grid">
+                    <!-- E-mini Nasdaq 100 -->
+                    <div class="futures-card" data-future="NQ" data-future-ticker="NQ=F" data-spot-ticker="^NDX">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <span class="card-icon">💻</span>
+                                <h3>E-mini Nasdaq 100</h3>
+                            </div>
+                            <span class="card-badge">NQ=F</span>
+                        </div>
+                        <div class="card-body">
+                            <div class="price-row">
+                                <div class="price-item">
+                                    <label>Futures Price</label>
+                                    <span class="price" id="NQ-futures-price">--</span>
+                                </div>
+                                <div class="price-item">
+                                    <label>Spot Price (^NDX)</label>
+                                    <span class="price" id="NQ-spot-price">--</span>
+                                </div>
+                            </div>
+                            <div class="basis-row">
+                                <div class="basis-item">
+                                    <label>Basis</label>
+                                    <span class="basis-value" id="NQ-basis">--</span>
+                                </div>
+                                <div class="basis-item highlight">
+                                    <label>Annualized Cost</label>
+                                    <span class="basis-value annualized" id="NQ-annualized">--</span>
+                                </div>
+                            </div>
+                            <div class="expiry-info">
+                                <span id="NQ-expiry">Expiry: --</span>
+                                <span id="NQ-days-to-expiry">Days: --</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 20+ Year Treasury Bond -->
+                    <div class="futures-card" data-future="ZB" data-future-ticker="ZB=F" data-spot-ticker="^TYX">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <span class="card-icon">🏛️</span>
+                                <h3>20+ Year Treasury</h3>
+                            </div>
+                            <span class="card-badge">ZB=F</span>
+                        </div>
+                        <div class="card-body">
+                            <div class="price-row">
+                                <div class="price-item">
+                                    <label>Futures Price</label>
+                                    <span class="price" id="ZB-futures-price">--</span>
+                                </div>
+                                <div class="price-item">
+                                    <label>Implied Spot (^TYX)</label>
+                                    <span class="price" id="ZB-spot-price">--</span>
+                                </div>
+                            </div>
+                            <div class="basis-row">
+                                <div class="basis-item">
+                                    <label>Basis</label>
+                                    <span class="basis-value" id="ZB-basis">--</span>
+                                </div>
+                                <div class="basis-item highlight">
+                                    <label>Annualized Cost</label>
+                                    <span class="basis-value annualized" id="ZB-annualized">--</span>
+                                </div>
+                            </div>
+                            <div class="expiry-info">
+                                <span id="ZB-expiry">Expiry: --</span>
+                                <span id="ZB-days-to-expiry">Days: --</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Gold Futures -->
+                    <div class="futures-card" data-future="GC" data-future-ticker="GC=F" data-spot-ticker="GLD">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <span class="card-icon">🥇</span>
+                                <h3>Gold Futures</h3>
+                            </div>
+                            <span class="card-badge">GC=F</span>
+                        </div>
+                        <div class="card-body">
+                            <div class="price-row">
+                                <div class="price-item">
+                                    <label>Futures Price</label>
+                                    <span class="price" id="GC-futures-price">--</span>
+                                </div>
+                                <div class="price-item">
+                                    <label>Spot (GLD×10.7)</label>
+                                    <span class="price" id="GC-spot-price">--</span>
+                                </div>
+                            </div>
+                            <div class="basis-row">
+                                <div class="basis-item">
+                                    <label>Basis</label>
+                                    <span class="basis-value" id="GC-basis">--</span>
+                                </div>
+                                <div class="basis-item highlight">
+                                    <label>Annualized Cost</label>
+                                    <span class="basis-value annualized" id="GC-annualized">--</span>
+                                </div>
+                            </div>
+                            <div class="expiry-info">
+                                <span id="GC-expiry">Expiry: --</span>
+                                <span id="GC-days-to-expiry">Days: --</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- US Dollar Index -->
+                    <div class="futures-card" data-future="DX" data-future-ticker="DX=F" data-spot-ticker="DX-Y.NYB">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <span class="card-icon">💵</span>
+                                <h3>US Dollar Index</h3>
+                            </div>
+                            <span class="card-badge">DX=F</span>
+                        </div>
+                        <div class="card-body">
+                            <div class="price-row">
+                                <div class="price-item">
+                                    <label>Futures Price</label>
+                                    <span class="price" id="DX-futures-price">--</span>
+                                </div>
+                                <div class="price-item">
+                                    <label>Spot (DX-Y.NYB)</label>
+                                    <span class="price" id="DX-spot-price">--</span>
+                                </div>
+                            </div>
+                            <div class="basis-row">
+                                <div class="basis-item">
+                                    <label>Basis</label>
+                                    <span class="basis-value" id="DX-basis">--</span>
+                                </div>
+                                <div class="basis-item highlight">
+                                    <label>Annualized Cost</label>
+                                    <span class="basis-value annualized" id="DX-annualized">--</span>
+                                </div>
+                            </div>
+                            <div class="expiry-info">
+                                <span id="DX-expiry">Expiry: --</span>
+                                <span id="DX-days-to-expiry">Days: --</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Info Section -->
+                <div class="info-section">
+                    <h3>📖 Understanding Futures Basis</h3>
+                    <div class="info-content">
+                        <p><strong>Basis</strong> = (Futures Price - Spot Price) / Spot Price × 100%</p>
+                        <p><strong>Annualized Cost</strong> = Basis × (365 / Days to Expiry)</p>
+                        <ul>
+                            <li><span class="positive">Positive basis (Contango)</span>: Futures trade at premium → holding cost</li>
+                            <li><span class="negative">Negative basis (Backwardation)</span>: Futures trade at discount → potential roll yield</li>
+                        </ul>
+                        <h4>Spot Price Calculations:</h4>
+                        <ul>
+                            <li><strong>Nasdaq 100</strong>: Direct comparison with ^NDX index</li>
+                            <li><strong>Treasury (ZB)</strong>: Spot derived from ^TYX yield using: Price = 6% coupon / yield × 100</li>
+                            <li><strong>Gold</strong>: GLD ETF price × 10.7 (GLD holds ~1/10.7 oz per share)</li>
+                            <li><strong>Dollar Index</strong>: DX-Y.NYB continuous contract as spot reference</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/utils.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/futures-monitor.js"></script>
+</body>
+</html>

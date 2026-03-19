@@ -206,7 +206,8 @@ async def get_fed_rate(
         end: End date filter
         update: If True, fetch latest data from FRED first
     """
-    from config import FED_FUNDS_RATE_SERIES, FRED_API_KEY
+    from config import FED_FUNDS_RATE_SERIES, FRED_API_KEY, MACRO_DATA_START_DATE
+    from datetime import datetime
     
     series_id = FED_FUNDS_RATE_SERIES
     
@@ -219,10 +220,14 @@ async def get_fed_rate(
             "data": [],
         }
     
+    # Use early start date to get full history when updating
+    macro_start = datetime.strptime(MACRO_DATA_START_DATE, "%Y-%m-%d").date()
+    
     # Try to update with latest data if requested
     if update:
         try:
-            new_data = data_loader.fetch_macro_data(series_id, start, end)
+            # Always fetch from macro start to get full history
+            new_data = data_loader.fetch_macro_data(series_id, macro_start, end)
             if not new_data.empty:
                 data_loader.cache_to_db(new_data, "macro_data")
                 data_loader.update_metadata(
@@ -234,7 +239,7 @@ async def get_fed_rate(
         except Exception as e:
             print(f"Warning: Could not update Fed rate: {e}")
     
-    # Load from cache
+    # Load from cache (use request start/end for filtering)
     data = data_loader.load_from_db(series_id, start, end, source="fred")
     
     if data.empty:
@@ -250,6 +255,162 @@ async def get_fed_rate(
         records.append({
             "date": str(row["date"]),
             "rate": float(row["value"]) if row["value"] is not None else None,
+        })
+    
+    return {
+        "status": "success",
+        "series_id": series_id,
+        "count": len(records),
+        "data": records,
+    }
+
+
+@router.get("/unemployment-rate")
+async def get_unemployment_rate(
+    start: Optional[date] = None,
+    end: Optional[date] = None,
+    update: bool = True,
+):
+    """
+    Get Unemployment Rate data from FRED.
+    
+    Args:
+        start: Start date filter
+        end: End date filter
+        update: If True, fetch latest data from FRED first
+    """
+    from config import UNEMPLOYMENT_RATE_SERIES, FRED_API_KEY, MACRO_DATA_START_DATE
+    from datetime import datetime
+    
+    series_id = UNEMPLOYMENT_RATE_SERIES
+    
+    if not FRED_API_KEY:
+        return {
+            "status": "no_api_key",
+            "message": "FRED API key not configured.",
+            "series_id": series_id,
+            "data": [],
+        }
+    
+    # Use early start date to get full history when updating
+    macro_start = datetime.strptime(MACRO_DATA_START_DATE, "%Y-%m-%d").date()
+    
+    if update:
+        try:
+            # Always fetch from macro start to get full history
+            new_data = data_loader.fetch_macro_data(series_id, macro_start, end)
+            if not new_data.empty:
+                data_loader.cache_to_db(new_data, "macro_data")
+                data_loader.update_metadata(
+                    series_id,
+                    "fred",
+                    new_data["date"].min(),
+                    new_data["date"].max(),
+                )
+        except Exception as e:
+            print(f"Warning: Could not update unemployment rate: {e}")
+    
+    # Load from cache (use request start/end for filtering)
+    data = data_loader.load_from_db(series_id, start, end, source="fred")
+    
+    if data.empty:
+        return {
+            "status": "no_data",
+            "series_id": series_id,
+            "data": [],
+        }
+    
+    records = []
+    for _, row in data.iterrows():
+        records.append({
+            "date": str(row["date"]),
+            "rate": float(row["value"]) if row["value"] is not None else None,
+        })
+    
+    return {
+        "status": "success",
+        "series_id": series_id,
+        "count": len(records),
+        "data": records,
+    }
+
+
+@router.get("/cpi-yoy")
+async def get_cpi_yoy(
+    start: Optional[date] = None,
+    end: Optional[date] = None,
+    update: bool = True,
+):
+    """
+    Get CPI Year-over-Year percentage change from FRED.
+    
+    Args:
+        start: Start date filter
+        end: End date filter
+        update: If True, fetch latest data from FRED first
+    """
+    from config import CPI_SERIES, FRED_API_KEY, MACRO_DATA_START_DATE
+    from datetime import datetime
+    import pandas as pd
+    
+    series_id = CPI_SERIES
+    
+    if not FRED_API_KEY:
+        return {
+            "status": "no_api_key",
+            "message": "FRED API key not configured.",
+            "series_id": series_id,
+            "data": [],
+        }
+    
+    # Use early start date to get full history when updating
+    macro_start = datetime.strptime(MACRO_DATA_START_DATE, "%Y-%m-%d").date()
+    
+    if update:
+        try:
+            # Always fetch from macro start to get full history
+            new_data = data_loader.fetch_macro_data(series_id, macro_start, end)
+            if not new_data.empty:
+                data_loader.cache_to_db(new_data, "macro_data")
+                data_loader.update_metadata(
+                    series_id,
+                    "fred",
+                    new_data["date"].min(),
+                    new_data["date"].max(),
+                )
+        except Exception as e:
+            print(f"Warning: Could not update CPI: {e}")
+    
+    # Load all available data for YoY calculation
+    data = data_loader.load_from_db(series_id, None, end, source="fred")
+    
+    if data.empty:
+        return {
+            "status": "no_data",
+            "series_id": series_id,
+            "data": [],
+        }
+    
+    # Calculate Year-over-Year percentage change
+    data = data.sort_values("date")
+    data["date"] = pd.to_datetime(data["date"])
+    data["value"] = pd.to_numeric(data["value"], errors="coerce")
+    
+    # Calculate YoY: (current - year_ago) / year_ago * 100
+    data["yoy"] = data["value"].pct_change(periods=12) * 100
+    
+    # Filter to requested date range (if provided)
+    if start:
+        data = data[data["date"] >= pd.to_datetime(start)]
+    
+    # Drop rows with NaN YoY values
+    data = data.dropna(subset=["yoy"])
+    
+    records = []
+    for _, row in data.iterrows():
+        records.append({
+            "date": str(row["date"].date()),
+            "rate": round(float(row["yoy"]), 2) if row["yoy"] is not None else None,
         })
     
     return {

@@ -40,7 +40,12 @@ FRED_API_KEY = os.getenv("FRED_API_KEY", None)
 # Fed Funds Rate series ID (for risk-free rate)
 FED_FUNDS_RATE_SERIES = "DFF"  # Daily Federal Funds Effective Rate
 
+# Other FRED series for macro indicators
+UNEMPLOYMENT_RATE_SERIES = "UNRATE"  # Civilian Unemployment Rate (monthly)
+CPI_SERIES = "CPIAUCSL"  # Consumer Price Index for All Urban Consumers (monthly)
+
 # Data settings
-DEFAULT_START_DATE = "2010-01-01"
+DEFAULT_START_DATE = "1990-01-01"
+MACRO_DATA_START_DATE = "1990-01-01"  # Earlier start for macro indicators (FRED data)
 CACHE_EXPIRY_DAYS = 1  # Re-fetch data if older than this
 

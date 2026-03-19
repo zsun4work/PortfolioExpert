@@ -157,6 +157,40 @@ const API = {
         return this.request(`/data/fed-rate?${queryString}`);
     },
     
+    /**
+     * Get Unemployment Rate data from FRED
+     * @param {string} start - Start date (optional)
+     * @param {string} end - End date (optional)
+     * @param {boolean} update - Whether to update from FRED first
+     * @returns {Promise<Object>} Unemployment rate data
+     */
+    async getUnemploymentRate(start = null, end = null, update = true) {
+        const params = new URLSearchParams();
+        if (start) params.append('start', start);
+        if (end) params.append('end', end);
+        params.append('update', update.toString());
+        
+        const queryString = params.toString();
+        return this.request(`/data/unemployment-rate?${queryString}`);
+    },
+    
+    /**
+     * Get CPI Year-over-Year percentage change from FRED
+     * @param {string} start - Start date (optional)
+     * @param {string} end - End date (optional)
+     * @param {boolean} update - Whether to update from FRED first
+     * @returns {Promise<Object>} CPI YoY data
+     */
+    async getCpiYoY(start = null, end = null, update = true) {
+        const params = new URLSearchParams();
+        if (start) params.append('start', start);
+        if (end) params.append('end', end);
+        params.append('update', update.toString());
+        
+        const queryString = params.toString();
+        return this.request(`/data/cpi-yoy?${queryString}`);
+    },
+    
     // =========================================================================
     // Backtest Endpoints
     // =========================================================================

@@ -12,8 +12,14 @@ const App = {
         subPeriods: [],
         backtestResult: null,
         isLoading: false,
+        // Macro indicator data from FRED
         fedRateData: [],         // Fed Funds Rate data
-        showFedRate: true,       // Toggle for Fed rate display
+        unemploymentData: [],    // Unemployment Rate data
+        cpiYoyData: [],          // CPI Year-over-Year data
+        // Toggle states for macro indicators
+        showFedRate: true,
+        showUnemployment: false,
+        showCpi: false,
     },
     
     // Date picker instances
@@ -60,8 +66,8 @@ const App = {
         this.updateBacktestButton();
         this.updateMarginInfo();  // Ensure margin info is always displayed
         
-        // Load Fed Funds Rate data (background, don't block init)
-        this.loadFedRateData();
+        // Load all macro indicator data (background, don't block init)
+        this.loadMacroData();
         
         // Apply saved section order
         this.applySectionOrder();
@@ -183,10 +189,19 @@ const App = {
         document.getElementById('runBacktestBtn').addEventListener('click', () => this.runBacktest());
         
         // Chart buttons
-        document.getElementById('toggleFedRateBtn').addEventListener('click', () => this.toggleFedRate());
+        document.getElementById('toggleFedRateBtn').addEventListener('click', () => this.toggleMacroIndicator('fedRate'));
+        document.getElementById('toggleUnemploymentBtn').addEventListener('click', () => this.toggleMacroIndicator('unemployment'));
+        document.getElementById('toggleCpiBtn').addEventListener('click', () => this.toggleMacroIndicator('cpi'));
         document.getElementById('resetToFullRangeBtn').addEventListener('click', () => this.resetToFullRange());
         document.getElementById('exportChartBtn').addEventListener('click', () => Chart.exportImage());
         document.getElementById('resetZoomBtn').addEventListener('click', () => Chart.resetZoom());
+        
+        // Analyze range button (add selected range as sub-period)
+        document.getElementById('analyzeRangeBtn')?.addEventListener('click', () => this.addSelectedRangeAsSubPeriod());
+        
+        // Sub-period selection mode
+        document.getElementById('selectPeriodBtn').addEventListener('click', () => Chart.toggleSelectionMode());
+        document.getElementById('cancelSelectionMode')?.addEventListener('click', () => Chart.deactivateSelectionMode());
         
         // Sub-period buttons
         document.getElementById('addSubPeriodBtn').addEventListener('click', () => this.addSubPeriod());
@@ -788,27 +803,133 @@ const App = {
      * @param {string} end - End date
      */
     onChartRangeSelect(start, end) {
+        // Prevent recursive updates - use longer timeout for async relayout events
+        if (this._isSyncing) return;
+        this._isSyncing = true;
+        
+        // Store selected range for analysis
+        this._selectedRange = { start, end };
+        
         const rangeInfo = document.getElementById('chartRangeInfo');
         const selectedRange = document.getElementById('selectedRange');
         
-        rangeInfo.style.display = 'flex';
-        selectedRange.textContent = `${start} to ${end}`;
+        if (rangeInfo) rangeInfo.style.display = 'flex';
+        if (selectedRange) selectedRange.textContent = `${start} to ${end}`;
         
-        Chart.highlightPeriod(start, end);
+        // DON'T call highlightPeriod here - it causes relayout loops
+        // The selection highlight is already visible from Plotly's zoom
         
-        // Sync sub-charts to the same range
+        // Sync sub-charts to the same range (don't await, just fire and forget)
         this.syncChartRanges(start, end);
+        
+        // Calculate and display metrics for selected period
+        this.analyzeSelectedRange(start, end);
+        
+        // Keep syncing flag set longer to catch async events
+        setTimeout(() => {
+            this._isSyncing = false;
+        }, 200);
+    },
+    
+    /**
+     * Analyze the selected range and display metrics
+     * @param {string} start - Start date
+     * @param {string} end - End date
+     */
+    analyzeSelectedRange(start, end) {
+        try {
+            if (!this.state.backtestResult || !this.state.backtestResult.equity_curve) {
+                return;
+            }
+            
+            const equityCurve = this.state.backtestResult.equity_curve;
+            
+            // Filter equity curve to selected range
+            const filteredCurve = equityCurve.filter(d => d.date >= start && d.date <= end);
+            
+            if (filteredCurve.length < 2) {
+                console.warn('Not enough data points in selected range');
+                return;
+            }
+            
+            // Calculate metrics for the selected period
+            const startValue = filteredCurve[0].value;
+            const endValue = filteredCurve[filteredCurve.length - 1].value;
+            
+            if (!startValue || !endValue || startValue === 0) {
+                console.warn('Invalid values in selected range');
+                return;
+            }
+            
+            const totalReturn = (endValue / startValue - 1) * 100;
+            
+            // Calculate daily returns for volatility
+            const dailyReturns = [];
+            for (let i = 1; i < filteredCurve.length; i++) {
+                const prevVal = filteredCurve[i-1].value;
+                if (prevVal && prevVal !== 0) {
+                    dailyReturns.push(filteredCurve[i].value / prevVal - 1);
+                }
+            }
+            
+            if (dailyReturns.length === 0) {
+                return;
+            }
+            
+            // Annualized volatility
+            const avgReturn = dailyReturns.reduce((a, b) => a + b, 0) / dailyReturns.length;
+            const variance = dailyReturns.reduce((sum, r) => sum + Math.pow(r - avgReturn, 2), 0) / dailyReturns.length;
+            const dailyVol = Math.sqrt(variance);
+            const annualizedVol = dailyVol * Math.sqrt(252) * 100;
+            
+            // CAGR
+            const days = filteredCurve.length;
+            const years = days / 252;
+            const cagr = years > 0 ? (Math.pow(endValue / startValue, 1 / years) - 1) * 100 : 0;
+            
+            // Sharpe ratio (assuming 2% risk-free rate)
+            const riskFreeRate = 2;
+            const sharpe = annualizedVol > 0 ? (cagr - riskFreeRate) / annualizedVol : 0;
+            
+            // Update the range info display with metrics
+            const selectedRange = document.getElementById('selectedRange');
+            if (selectedRange) {
+                selectedRange.innerHTML = `
+                    <strong>${start} to ${end}</strong>
+                    <span class="range-metrics">
+                        Return: <span class="${totalReturn >= 0 ? 'positive' : 'negative'}">${totalReturn.toFixed(2)}%</span> |
+                        CAGR: <span class="${cagr >= 0 ? 'positive' : 'negative'}">${cagr.toFixed(2)}%</span> |
+                        Vol: ${annualizedVol.toFixed(2)}% |
+                        Sharpe: ${sharpe.toFixed(2)}
+                    </span>
+                `;
+            }
+        } catch (error) {
+            console.error('Error analyzing selected range:', error);
+        }
+    },
+    
+    /**
+     * Add the currently selected range as a sub-period
+     */
+    addSelectedRangeAsSubPeriod() {
+        if (this._selectedRange && this._selectedRange.start && this._selectedRange.end) {
+            this.addSubPeriod(this._selectedRange.start, this._selectedRange.end);
+            Utils.toast(`Sub-period added: ${this._selectedRange.start} to ${this._selectedRange.end}`, 'success');
+        } else {
+            Utils.toast('No range selected. Zoom on the chart first.', 'warning');
+        }
     },
     
     /**
      * Add a new sub-period
      */
-    addSubPeriod() {
+    addSubPeriod(startDate = null, endDate = null) {
         const id = Utils.generateId();
         const period = {
             id,
-            start: this.state.dateRange.start,
-            end: this.state.dateRange.end,
+            start: startDate || this.state.dateRange.start,
+            end: endDate || this.state.dateRange.end,
             weights: { ...this.state.weights },
             enabled: true,  // New: toggle to enable/disable this sub-period
         };
@@ -816,6 +937,32 @@ const App = {
         this.state.subPeriods.push(period);
         this.renderSubPeriods();
         this.saveStateToStorage();
+        
+        // Show sub-period section
+        document.getElementById('subPeriodSection').style.display = 'block';
+    },
+    
+    /**
+     * Close the sub-period confirmation modal
+     */
+    closeSubPeriodModal() {
+        const modal = document.getElementById('subPeriodConfirmModal');
+        if (modal) modal.style.display = 'none';
+    },
+    
+    /**
+     * Confirm adding the selected sub-period
+     */
+    confirmAddSubPeriod() {
+        const startDate = Chart.selectionMode.confirmedStart;
+        const endDate = Chart.selectionMode.confirmedEnd;
+        
+        if (startDate && endDate) {
+            this.addSubPeriod(startDate, endDate);
+            Utils.toast(`Sub-period added: ${startDate} to ${endDate}`, 'success');
+        }
+        
+        this.closeSubPeriodModal();
     },
     
     /**
@@ -1284,8 +1431,20 @@ const App = {
     },
     
     // =========================================================================
-    // Federal Funds Rate
+    // Macro Indicators (Fed Rate, Unemployment, CPI)
     // =========================================================================
+    
+    /**
+     * Load all macro indicator data from backend
+     */
+    async loadMacroData() {
+        // Load all indicators in parallel
+        await Promise.all([
+            this.loadFedRateData(),
+            this.loadUnemploymentData(),
+            this.loadCpiData(),
+        ]);
+    },
     
     /**
      * Load Federal Funds Rate data from backend
@@ -1298,11 +1457,6 @@ const App = {
             if (response.status === 'success' && response.data) {
                 this.state.fedRateData = response.data;
                 console.log(`Loaded ${response.data.length} Fed rate data points`);
-                
-                // Update chart if we have a backtest result
-                if (this.state.backtestResult) {
-                    this.updateChartWithFedRate();
-                }
             } else if (response.status === 'no_api_key') {
                 console.warn('FRED API key not configured');
             }
@@ -1312,47 +1466,117 @@ const App = {
     },
     
     /**
-     * Toggle Fed rate display on chart
+     * Load Unemployment Rate data from backend
      */
-    toggleFedRate() {
-        this.state.showFedRate = !this.state.showFedRate;
-        
-        // Update toggle button state
-        const btn = document.getElementById('toggleFedRateBtn');
-        if (btn) {
-            btn.classList.toggle('active', this.state.showFedRate);
-        }
-        
-        // Refresh chart
-        if (this.state.backtestResult) {
-            this.updateChartWithFedRate();
+    async loadUnemploymentData() {
+        try {
+            console.log('Loading Unemployment Rate data...');
+            const response = await API.getUnemploymentRate(null, null, true);
+            
+            if (response.status === 'success' && response.data) {
+                this.state.unemploymentData = response.data;
+                console.log(`Loaded ${response.data.length} unemployment rate data points`);
+            } else if (response.status === 'no_api_key') {
+                console.warn('FRED API key not configured');
+            }
+        } catch (error) {
+            console.warn('Could not load unemployment rate data:', error.message);
         }
     },
     
     /**
-     * Update chart to include or exclude Fed rate overlay
+     * Load CPI Year-over-Year data from backend
      */
-    updateChartWithFedRate() {
+    async loadCpiData() {
+        try {
+            console.log('Loading CPI YoY data...');
+            const response = await API.getCpiYoY(null, null, true);
+            
+            if (response.status === 'success' && response.data) {
+                this.state.cpiYoyData = response.data;
+                console.log(`Loaded ${response.data.length} CPI YoY data points`);
+            } else if (response.status === 'no_api_key') {
+                console.warn('FRED API key not configured');
+            }
+        } catch (error) {
+            console.warn('Could not load CPI data:', error.message);
+        }
+    },
+    
+    /**
+     * Toggle macro indicator display on chart
+     * @param {string} indicator - 'fedRate', 'unemployment', or 'cpi'
+     */
+    toggleMacroIndicator(indicator) {
+        const stateKeyMap = {
+            fedRate: 'showFedRate',
+            unemployment: 'showUnemployment',
+            cpi: 'showCpi',
+        };
+        const btnIdMap = {
+            fedRate: 'toggleFedRateBtn',
+            unemployment: 'toggleUnemploymentBtn',
+            cpi: 'toggleCpiBtn',
+        };
+        
+        const stateKey = stateKeyMap[indicator];
+        const btnId = btnIdMap[indicator];
+        
+        if (!stateKey) return;
+        
+        // Toggle state
+        this.state[stateKey] = !this.state[stateKey];
+        
+        // Update toggle button state
+        const btn = document.getElementById(btnId);
+        if (btn) {
+            btn.classList.toggle('active', this.state[stateKey]);
+        }
+        
+        // Refresh chart
+        if (this.state.backtestResult) {
+            this.updateChartWithMacroData();
+        }
+    },
+    
+    /**
+     * Update chart to include or exclude macro indicator overlays
+     */
+    updateChartWithMacroData() {
         if (!this.state.backtestResult) return;
         
         const equityCurve = this.state.backtestResult.equity_curve;
+        const startDate = equityCurve[0]?.date;
+        const endDate = equityCurve[equityCurve.length - 1]?.date;
         
-        // Get Fed rate data filtered to backtest date range
-        let fedRateForChart = null;
-        if (this.state.showFedRate && this.state.fedRateData.length > 0) {
-            const startDate = equityCurve[0]?.date;
-            const endDate = equityCurve[equityCurve.length - 1]?.date;
-            
-            fedRateForChart = this.state.fedRateData.filter(d => {
-                return d.date >= startDate && d.date <= endDate;
-            });
-        }
+        // Filter data to backtest date range
+        const filterByDateRange = (data) => {
+            if (!data || data.length === 0) return null;
+            return data.filter(d => d.date >= startDate && d.date <= endDate);
+        };
         
-        // Update chart with Fed rate overlay
+        // Get filtered data for enabled indicators
+        const fedRateForChart = this.state.showFedRate ? filterByDateRange(this.state.fedRateData) : null;
+        const unemploymentForChart = this.state.showUnemployment ? filterByDateRange(this.state.unemploymentData) : null;
+        const cpiForChart = this.state.showCpi ? filterByDateRange(this.state.cpiYoyData) : null;
+        
+        // Update chart with all macro data
         Chart.updateData(equityCurve, {
             onRangeSelect: (start, end) => this.onChartRangeSelect(start, end),
             fedRateData: fedRateForChart,
+            unemploymentData: unemploymentForChart,
+            cpiYoyData: cpiForChart,
         });
+        
+        // Store equity curve for sub-period selection mode
+        Chart.setEquityCurveData(equityCurve);
+    },
+    
+    /**
+     * Legacy method - kept for compatibility
+     */
+    updateChartWithFedRate() {
+        this.updateChartWithMacroData();
     },
     
     /**
@@ -1657,13 +1881,9 @@ const App = {
             displayModeBar: false 
         });
         
-        // Sync zoom with main chart
-        chartArea.on('plotly_relayout', (eventData) => {
-            if (eventData['xaxis.range[0]'] && eventData['xaxis.range[1]']) {
-                // Sync to weight chart as well
-                this.syncChartRanges(eventData['xaxis.range[0]'], eventData['xaxis.range[1]']);
-            }
-        });
+        // Sync zoom with main chart - DISABLED to prevent recursive loops
+        // The main chart is the source of truth and syncs TO sub-charts, not FROM
+        // chartArea.on('plotly_relayout', (eventData) => { ... });
     },
     
     /**
@@ -1682,6 +1902,9 @@ const App = {
      * Sync chart ranges across all sub-charts
      */
     syncChartRanges(start, end) {
+        // Only sync if we have valid dates
+        if (!start || !end) return;
+        
         const weightChart = document.getElementById('weightAllocationChart');
         const priceChart = document.getElementById('assetPricesChart');
         
@@ -1690,11 +1913,21 @@ const App = {
             'xaxis.range[1]': end,
         };
         
-        if (weightChart && weightChart.data) {
-            Plotly.relayout(weightChart, update);
+        // Use try-catch to prevent any errors from cascading
+        try {
+            if (weightChart && weightChart.data) {
+                Plotly.relayout(weightChart, update);
+            }
+        } catch (e) {
+            console.warn('Could not sync weight chart:', e);
         }
-        if (priceChart && priceChart.data) {
-            Plotly.relayout(priceChart, update);
+        
+        try {
+            if (priceChart && priceChart.data) {
+                Plotly.relayout(priceChart, update);
+            }
+        } catch (e) {
+            console.warn('Could not sync price chart:', e);
         }
     },
     

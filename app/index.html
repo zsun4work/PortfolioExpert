@@ -22,6 +22,7 @@
                     <a href="stat-analysis.html" class="nav-tab">Stat Analysis</a>
                     <a href="index.html" class="nav-tab active">Backtest</a>
                     <a href="calculator.html" class="nav-tab">Calculator</a>
+                    <a href="futures-monitor.html" class="nav-tab">Futures Monitor</a>
                 </nav>
             </div>
             <div class="header-right">
@@ -159,22 +160,77 @@
                     <div class="chart-header">
                         <h2>Performance Chart</h2>
                         <div class="chart-actions">
-                            <button id="toggleFedRateBtn" class="icon-btn active" title="Toggle Fed Rate Overlay">📊</button>
+                            <button id="selectPeriodBtn" class="icon-btn" title="Select Sub-Period (click to activate)">✂️</button>
+                            <div class="macro-toggles">
+                                <button id="toggleFedRateBtn" class="icon-btn macro-btn active" title="Toggle Fed Funds Rate">💵</button>
+                                <button id="toggleUnemploymentBtn" class="icon-btn macro-btn" title="Toggle Unemployment Rate">👷</button>
+                                <button id="toggleCpiBtn" class="icon-btn macro-btn" title="Toggle CPI YoY">📈</button>
+                            </div>
                             <button id="resetToFullRangeBtn" class="icon-btn" title="Reset to Full Date Range">🔄</button>
                             <button id="exportChartBtn" class="icon-btn" title="Export as PNG">📷</button>
                             <button id="resetZoomBtn" class="icon-btn" title="Reset Zoom">🔍</button>
                         </div>
                     </div>
-                    <div id="performanceChart" class="chart-area">
-                        <div class="chart-placeholder">
-                            <span class="placeholder-icon">📊</span>
-                            <p>Run a backtest to see results</p>
+                    <div id="chartWrapper" class="chart-wrapper">
+                        <div id="performanceChart" class="chart-area">
+                            <div class="chart-placeholder">
+                                <span class="placeholder-icon">📊</span>
+                                <p>Run a backtest to see results</p>
+                            </div>
+                        </div>
+                        <!-- Selection overlay for sub-period picking -->
+                        <div id="selectionOverlay" class="selection-overlay" style="display: none;">
+                            <div id="selectionBox" class="selection-box"></div>
+                        </div>
+                        <!-- Date range tooltip during selection -->
+                        <div id="selectionTooltip" class="selection-tooltip" style="display: none;">
+                            <div class="tooltip-content">
+                                <span class="tooltip-label">Start:</span>
+                                <span id="tooltipStartDate" class="tooltip-date">-</span>
+                            </div>
+                            <div class="tooltip-content">
+                                <span class="tooltip-label">End:</span>
+                                <span id="tooltipEndDate" class="tooltip-date">-</span>
+                            </div>
                         </div>
                     </div>
                     <div id="chartRangeInfo" class="chart-range-info" style="display: none;">
                         <span>Selected: </span>
                         <span id="selectedRange"></span>
                         <button id="analyzeRangeBtn" class="btn btn-small">Analyze</button>
+                    </div>
+                    <!-- Selection mode indicator -->
+                    <div id="selectionModeIndicator" class="selection-mode-indicator" style="display: none;">
+                        <span class="indicator-icon">✂️</span>
+                        <span>Selection Mode: Drag on chart to select a period</span>
+                        <button id="cancelSelectionMode" class="btn btn-small btn-danger-outline">Cancel</button>
+                    </div>
+                </div>
+
+                <!-- Sub-Period Confirmation Modal -->
+                <div id="subPeriodConfirmModal" class="modal sub-period-modal" style="display: none;">
+                    <div class="modal-content modal-small">
+                        <div class="modal-header">
+                            <h3>📅 Add Sub-Period?</h3>
+                            <button class="modal-close" onclick="App.closeSubPeriodModal()">&times;</button>
+                        </div>
+                        <div class="modal-body">
+                            <p>Add the selected period as a sub-period adjustment?</p>
+                            <div class="selected-period-info">
+                                <div class="period-date">
+                                    <span class="label">Start:</span>
+                                    <span id="confirmStartDate" class="value">-</span>
+                                </div>
+                                <div class="period-date">
+                                    <span class="label">End:</span>
+                                    <span id="confirmEndDate" class="value">-</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn btn-secondary" onclick="App.closeSubPeriodModal()">Cancel</button>
+                            <button class="btn btn-primary" onclick="App.confirmAddSubPeriod()">Add Period</button>
+                        </div>
                     </div>
                 </div>
 

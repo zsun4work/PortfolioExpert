@@ -68,7 +68,7 @@ class BacktestEngine:
     
     TRADING_DAYS_PER_YEAR = 252
     DEFAULT_RISK_FREE_RATE = 0.02  # 2% fallback if Fed rate unavailable
-    MARGIN_FEE = 0.01  # 1% annual fee on top of risk-free rate for borrowed funds
+    MARGIN_FEE = 0.005  # 1% annual fee on top of risk-free rate for borrowed funds
     
     # =========================================================================
     # Fed Rate Methods
@@ -143,6 +143,10 @@ class BacktestEngine:
         """
         Apply allocation weights to individual asset returns.
         
+        Uses outer join to include dates where at least one asset has data.
+        For assets missing data on a given day, their weight is redistributed
+        proportionally to the assets that do have data.
+        
         Args:
             returns_dict: Dict of ticker -> DataFrame with returns
             weights: Dict of ticker -> weight (should sum to 1.0)
@@ -155,7 +159,7 @@ class BacktestEngine:
         if weight_sum != 1.0:
             weights = {k: v / weight_sum for k, v in weights.items()}
         
-        # Merge all returns on date
+        # Merge all returns on date using OUTER join to keep all dates
         dfs = []
         for ticker, df in returns_dict.items():
             df = df.copy()
@@ -167,14 +171,34 @@ class BacktestEngine:
         
         merged = dfs[0]
         for df in dfs[1:]:
-            merged = pd.merge(merged, df, on="date", how="inner")
+            merged = pd.merge(merged, df, on="date", how="outer")
         
-        # Calculate weighted return
-        merged["return"] = sum(
-            merged[f"return_{ticker}"] * weight
-            for ticker, weight in weights.items()
-            if f"return_{ticker}" in merged.columns
-        )
+        # Sort by date
+        merged = merged.sort_values("date").reset_index(drop=True)
+        
+        # Calculate weighted return with dynamic weight rebalancing
+        # For each row, redistribute weights of missing assets to available ones
+        def calculate_row_return(row):
+            available_weight = 0.0
+            weighted_return = 0.0
+            
+            for ticker, weight in weights.items():
+                col = f"return_{ticker}"
+                if col in merged.columns and pd.notna(row[col]):
+                    available_weight += weight
+                    weighted_return += row[col] * weight
+            
+            # If no assets have data for this day, return NaN
+            if available_weight == 0:
+                return np.nan
+            
+            # Normalize by available weight (redistributes missing weights)
+            return weighted_return / available_weight
+        
+        merged["return"] = merged.apply(calculate_row_return, axis=1)
+        
+        # Drop rows where no assets had data
+        merged = merged.dropna(subset=["return"])
         
         return merged[["date", "return"]]
     
@@ -332,6 +356,9 @@ class BacktestEngine:
         """
         Run a full backtest pipeline.
         
+        Includes periods where at least one asset has data. Assets without
+        data for a given day have their weight redistributed to available assets.
+        
         Args:
             tickers: List of ticker symbols
             weights: Allocation weights for each ticker
@@ -344,18 +371,38 @@ class BacktestEngine:
         """
         # Fetch data for all tickers
         returns_dict = {}
+        missing_tickers = []
+        
         for ticker in tickers:
             data = await data_loader.get_asset_data(ticker, start, end)
             if data.empty:
+                missing_tickers.append(ticker)
+                print(f"Warning: No data for {ticker} in period {start} to {end}")
                 continue
             returns = self.calculate_returns(data)
+            if returns.empty:
+                missing_tickers.append(ticker)
+                print(f"Warning: Could not calculate returns for {ticker}")
+                continue
             returns_dict[ticker] = returns
+            print(f"Loaded {len(returns)} return data points for {ticker} "
+                  f"({returns['date'].min()} to {returns['date'].max()})")
         
         if not returns_dict:
             raise ValueError("No data available for any of the specified tickers")
         
+        if missing_tickers:
+            print(f"Note: {len(missing_tickers)} ticker(s) had no data: {missing_tickers}")
+            print("Their weights will be redistributed to available assets")
+        
+        # Filter weights to only include tickers with data
+        available_weights = {k: v for k, v in weights.items() if k in returns_dict}
+        
         # Apply weights and compute portfolio returns
-        portfolio_returns = self.apply_weights(returns_dict, weights)
+        portfolio_returns = self.apply_weights(returns_dict, available_weights)
+        
+        if portfolio_returns.empty:
+            raise ValueError("No overlapping data available for portfolio calculation")
         
         # Apply margin/leverage if specified
         if margin != 1.0:
