@@ -307,8 +307,9 @@ const RiskAnalysis = {
         const leverageRate = CalculatorState.config.leverageRate || 1;
         const riskFreeRate = CalculatorState.config.riskFreeRate || 0.05;
         
-        // Leveraged portfolio value (total position size)
-        const leveragedValue = targetCash * leverageRate;
+        // Gross exposure (position size) shown for reference only.
+        // Risk metrics below are computed on equity/cash basis.
+        const grossExposure = targetCash * leverageRate;
         
         // Calculate portfolio returns
         const portfolioReturns = this.calculatePortfolioReturns(priceHistory, weights);
@@ -337,11 +338,12 @@ const RiskAnalysis = {
             riskFreeRate
         );
         
-        // Calculate VaR using leveraged portfolio value and leveraged volatility
-        const var95_1d = this.calculateVaR(leveragedValue, leveragedDailyVolatility, 1, 0.95);
-        const var99_1d = this.calculateVaR(leveragedValue, leveragedDailyVolatility, 1, 0.99);
-        const var95_30d = this.calculateVaR(leveragedValue, leveragedDailyVolatility, 30, 0.95);
-        const var99_30d = this.calculateVaR(leveragedValue, leveragedDailyVolatility, 30, 0.99);
+        // IMPORTANT: compute VaR in dollars on the investor's equity/cash base
+        // (not on gross leveraged position size).
+        const var95_1d = this.calculateVaR(targetCash, leveragedDailyVolatility, 1, 0.95);
+        const var99_1d = this.calculateVaR(targetCash, leveragedDailyVolatility, 1, 0.99);
+        const var95_30d = this.calculateVaR(targetCash, leveragedDailyVolatility, 30, 0.95);
+        const var99_30d = this.calculateVaR(targetCash, leveragedDailyVolatility, 30, 0.99);
         
         // Calculate correlation matrix
         const correlationData = this.calculateCorrelationMatrix(priceHistory);
@@ -365,7 +367,7 @@ const RiskAnalysis = {
             sharpeRatio: sharpeRatio,
             riskFreeRate: riskFreeRate,
             
-            // VaR (based on leveraged position)
+            // VaR (dollar loss on equity/cash base)
             var95_1d: var95_1d,
             var99_1d: var99_1d,
             var95_30d: var95_30d,
@@ -376,7 +378,7 @@ const RiskAnalysis = {
             
             // Leverage info
             leverageRate: leverageRate,
-            leveragedValue: leveragedValue,
+            grossExposure: grossExposure,
             baseCash: targetCash,
             
             // Raw data for projection (base unleveraged returns)

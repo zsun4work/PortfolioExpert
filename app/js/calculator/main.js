@@ -47,6 +47,7 @@ const Calculator = {
         // Config inputs
         document.getElementById('targetCash')?.addEventListener('change', (e) => {
             CalculatorState.setTargetCash(parseFloat(e.target.value) || 100000);
+            CalculatorUI.syncLeverageForShareMode();
         });
         
         document.getElementById('lookbackWindow')?.addEventListener('change', (e) => {
@@ -54,7 +55,18 @@ const Calculator = {
         });
         
         document.getElementById('leverageRate')?.addEventListener('change', (e) => {
-            CalculatorState.setLeverageRate(parseFloat(e.target.value) || 1);
+            if (CalculatorUI.getAllocationMode() === 'weight') {
+                CalculatorState.setLeverageRate(parseFloat(e.target.value) || 1);
+            } else {
+                CalculatorUI.syncLeverageForShareMode();
+            }
+        });
+
+        document.getElementById('allocationMode')?.addEventListener('change', (e) => {
+            const mode = e.target.value === 'shares' ? 'shares' : 'weight';
+            CalculatorState.setAllocationMode(mode);
+            CalculatorUI.renderAssetsList();
+            CalculatorUI.syncAllocationModeUI();
         });
         
         // Calculate button
@@ -112,14 +124,19 @@ const Calculator = {
      * Add a new asset
      */
     async addAsset() {
-        const { ticker, weight } = CalculatorUI.getNewAssetInput();
+        const { ticker, weight, targetShares, mode } = CalculatorUI.getNewAssetInput();
         
         if (!ticker) {
             CalculatorUI.toast('Please enter a ticker symbol', 'error');
             return;
         }
         
-        if (weight <= 0) {
+        if (mode === 'shares') {
+            if (targetShares <= 0) {
+                CalculatorUI.toast('Please enter a valid target share count', 'error');
+                return;
+            }
+        } else if (weight <= 0) {
             CalculatorUI.toast('Please enter a valid weight', 'error');
             return;
         }
@@ -131,7 +148,7 @@ const Calculator = {
         }
         
         // Add to state
-        CalculatorState.addAsset(ticker, weight, 0);
+        CalculatorState.addAsset(ticker, weight, 0, targetShares);
         
         // Clear input
         CalculatorUI.clearNewAssetInput();
@@ -146,6 +163,7 @@ const Calculator = {
             await API.loadData(ticker, null, null, 'yfinance');
             await DataManager.fetchLatestPrices();
             CalculatorUI.renderAssetsList();
+            CalculatorUI.syncLeverageForShareMode();
             CalculatorUI.toast(`${ticker} added successfully`, 'success');
         } catch (error) {
             CalculatorUI.toast(`Failed to load data for ${ticker}: ${error.message}`, 'error');
@@ -161,6 +179,7 @@ const Calculator = {
     removeAsset(ticker) {
         CalculatorState.removeAsset(ticker);
         CalculatorUI.renderAssetsList();
+        CalculatorUI.syncLeverageForShareMode();
         CalculatorUI.toast(`${ticker} removed`, 'info');
     },
     
@@ -173,6 +192,18 @@ const Calculator = {
         const weight = parseFloat(value) / 100;
         CalculatorState.updateWeight(ticker, weight);
         CalculatorUI.updateTotalWeight();
+    },
+
+    /**
+     * Handle target shares change from input
+     * @param {string} ticker - Ticker symbol
+     * @param {string} value - New target shares value
+     */
+    onTargetSharesChange(ticker, value) {
+        const shares = parseInt(value, 10) || 0;
+        CalculatorState.updateTargetShares(ticker, shares);
+        CalculatorUI.updateTotalWeight();
+        CalculatorUI.syncLeverageForShareMode();
     },
     
     /**
@@ -225,13 +256,6 @@ const Calculator = {
             return;
         }
         
-        // Check total weight
-        const totalWeight = CalculatorState.getTotalWeight();
-        if (Math.abs(totalWeight - 1) > 0.01) {
-            CalculatorUI.toast('Weights should sum to 100%', 'error');
-            return;
-        }
-        
         CalculatorUI.showLoading('Calculating positions...');
         CalculatorUI.updateStatus('Calculating...');
         
@@ -239,16 +263,48 @@ const Calculator = {
             // Update config from UI
             CalculatorState.setTargetCash(CalculatorUI.getTargetCash());
             CalculatorState.setLookbackWindow(CalculatorUI.getLookbackWindow());
-            CalculatorState.setLeverageRate(CalculatorUI.getLeverageRate());
+            if (CalculatorUI.getAllocationMode() === 'weight') {
+                CalculatorState.setLeverageRate(CalculatorUI.getLeverageRate());
+            }
             
             // Ensure we have latest prices
             if (Object.keys(CalculatorState.prices).length === 0) {
                 await DataManager.fetchLatestPrices();
             }
+
+            let positionOptions = {};
+            if (CalculatorUI.getAllocationMode() === 'shares') {
+                const shareMode = CalculatorState.getShareModePortfolio();
+                if (shareMode.totalTargetValue <= 0) {
+                    CalculatorUI.toast('Enter target shares greater than 0 for at least one asset', 'error');
+                    return;
+                }
+                Object.entries(shareMode.weights).forEach(([ticker, weight]) => {
+                    CalculatorState.updateWeight(ticker, weight);
+                });
+                CalculatorState.setLeverageRate(shareMode.leverageRate);
+                CalculatorUI.syncLeverageForShareMode();
+                positionOptions = {
+                    weights: shareMode.weights,
+                    leverageRate: shareMode.leverageRate,
+                    effectiveBuyingPower: shareMode.totalTargetValue,
+                    explicitTargetShares: CalculatorState.assets.reduce((acc, asset) => {
+                        acc[asset.ticker] = Math.max(0, Math.round(asset.targetShares || 0));
+                        return acc;
+                    }, {}),
+                };
+            } else {
+                // Check total weight for weight mode
+                const totalWeight = CalculatorState.getTotalWeight();
+                if (Math.abs(totalWeight - 1) > 0.01) {
+                    CalculatorUI.toast('Weights should sum to 100%', 'error');
+                    return;
+                }
+            }
             
             // Calculate positions
             CalculatorUI.showLoading('Calculating positions...');
-            const { positions, orders } = PositionCalculator.calculate();
+            const { positions, orders } = PositionCalculator.calculate(positionOptions);
             
             // Render position results
             CalculatorUI.renderPositionSummary(positions);

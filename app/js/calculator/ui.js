@@ -35,6 +35,7 @@ const CalculatorUI = {
     renderAssetsList() {
         const container = document.getElementById('assetsList');
         const assets = CalculatorState.assets;
+        const mode = this.getAllocationMode();
         
         if (assets.length === 0) {
             container.innerHTML = '<p class="empty-state">No assets added yet</p>';
@@ -45,16 +46,28 @@ const CalculatorUI = {
         
         container.innerHTML = assets.map(asset => {
             const price = CalculatorState.prices[asset.ticker];
-            const priceStr = price ? `$${price.price.toFixed(2)}` : 'Loading...';
-            
-            return `
-                <div class="asset-row" data-ticker="${asset.ticker}">
-                    <span class="asset-ticker">${asset.ticker}</span>
+            const hasValidPrice = Number.isFinite(price?.price);
+            const priceStr = hasValidPrice ? `$${price.price.toFixed(2)}` : 'Loading...';
+            const allocationInput = mode === 'shares'
+                ? `
+                    <input type="number" class="asset-weight-input" 
+                           value="${Math.round(asset.targetShares || 0)}" 
+                           min="0" step="1"
+                           onchange="Calculator.onTargetSharesChange('${asset.ticker}', this.value)">
+                    <span>sh</span>
+                `
+                : `
                     <input type="number" class="asset-weight-input" 
                            value="${(asset.weight * 100).toFixed(1)}" 
                            min="0" max="100" step="0.1"
                            onchange="Calculator.onWeightChange('${asset.ticker}', this.value)">
                     <span>%</span>
+                `;
+            
+            return `
+                <div class="asset-row" data-ticker="${asset.ticker}">
+                    <span class="asset-ticker">${asset.ticker}</span>
+                    ${allocationInput}
                     <span class="asset-price">${priceStr}</span>
                     <button class="remove-asset-btn" onclick="Calculator.removeAsset('${asset.ticker}')">&times;</button>
                 </div>
@@ -63,20 +76,38 @@ const CalculatorUI = {
         
         this.updateTotalWeight();
         this.renderHoldingsList();
+        this.syncAllocationModeUI();
+        this.syncLeverageForShareMode();
     },
     
     /**
      * Update total weight display
      */
     updateTotalWeight() {
+        const labelEl = document.getElementById('totalLabel');
         const totalEl = document.getElementById('totalWeight');
+        const mode = this.getAllocationMode();
+        
+        if (!totalEl) return;
+        
+        if (mode === 'shares') {
+            const { totalTargetValue } = CalculatorState.getShareModePortfolio();
+            if (labelEl) {
+                labelEl.textContent = 'Total Target Value:';
+            }
+            totalEl.textContent = '$' + totalTargetValue.toLocaleString(undefined, { maximumFractionDigits: 0 });
+            totalEl.className = 'weight-value';
+            return;
+        }
+
         const total = CalculatorState.getTotalWeight();
         const percentage = (total * 100).toFixed(1);
         
-        if (totalEl) {
-            totalEl.textContent = `${percentage}%`;
-            totalEl.className = 'weight-value' + (Math.abs(total - 1) > 0.01 ? ' invalid' : '');
+        if (labelEl) {
+            labelEl.textContent = 'Total Weight:';
         }
+        totalEl.textContent = `${percentage}%`;
+        totalEl.className = 'weight-value' + (Math.abs(total - 1) > 0.01 ? ' invalid' : '');
     },
     
     /**
@@ -456,6 +487,14 @@ const CalculatorUI = {
         const input = document.getElementById('leverageRate');
         return parseFloat(input?.value) || 1;
     },
+
+    /**
+     * Get allocation input mode
+     * @returns {string} 'weight' or 'shares'
+     */
+    getAllocationMode() {
+        return CalculatorState.config.allocationMode === 'shares' ? 'shares' : 'weight';
+    },
     
     /**
      * Get new asset input values
@@ -464,10 +503,14 @@ const CalculatorUI = {
     getNewAssetInput() {
         const tickerInput = document.getElementById('assetTickerInput');
         const weightInput = document.getElementById('assetWeightInput');
+        const mode = this.getAllocationMode();
+        const rawValue = parseFloat(weightInput?.value) || 0;
         
         return {
             ticker: tickerInput?.value.toUpperCase().trim() || '',
-            weight: (parseFloat(weightInput?.value) || 0) / 100,
+            weight: mode === 'weight' ? rawValue / 100 : 0,
+            targetShares: mode === 'shares' ? Math.max(0, Math.round(rawValue)) : 0,
+            mode,
         };
     },
     
@@ -479,7 +522,64 @@ const CalculatorUI = {
         const weightInput = document.getElementById('assetWeightInput');
         
         if (tickerInput) tickerInput.value = '';
-        if (weightInput) weightInput.value = '25';
+        if (weightInput) {
+            weightInput.value = this.getAllocationMode() === 'shares' ? '10' : '25';
+        }
+    },
+
+    /**
+     * Sync UI controls with selected allocation mode
+     */
+    syncAllocationModeUI() {
+        const mode = this.getAllocationMode();
+        const modeSelect = document.getElementById('allocationMode');
+        const leverageInput = document.getElementById('leverageRate');
+        const leverageHint = document.getElementById('leverageHint');
+        const allocationInput = document.getElementById('assetWeightInput');
+
+        if (modeSelect) modeSelect.value = mode;
+        if (allocationInput) {
+            allocationInput.placeholder = mode === 'shares' ? 'Target Shares' : 'Weight %';
+            allocationInput.step = mode === 'shares' ? '1' : '0.1';
+            allocationInput.min = '0';
+            if (mode === 'shares') {
+                allocationInput.removeAttribute('max');
+                if (allocationInput.value === '' || parseFloat(allocationInput.value) === 25) {
+                    allocationInput.value = '10';
+                }
+            } else {
+                allocationInput.max = '100';
+                if (allocationInput.value === '' || parseFloat(allocationInput.value) === 10) {
+                    allocationInput.value = '25';
+                }
+            }
+        }
+
+        if (leverageInput) {
+            leverageInput.readOnly = mode === 'shares';
+            leverageInput.title = mode === 'shares'
+                ? 'Auto-calculated from target shares and cash'
+                : '';
+        }
+        if (leverageHint) {
+            leverageHint.textContent = mode === 'shares'
+                ? 'Auto: leverage = total target value / cash (minimum 1.0x).'
+                : 'Manual in Weight mode; auto-calculated in Shares mode.';
+        }
+        this.updateTotalWeight();
+    },
+
+    /**
+     * Update leverage display when using shares mode
+     */
+    syncLeverageForShareMode() {
+        if (this.getAllocationMode() !== 'shares') return;
+
+        const leverageInput = document.getElementById('leverageRate');
+        if (!leverageInput) return;
+
+        const { leverageRate } = CalculatorState.getShareModePortfolio();
+        leverageInput.value = leverageRate.toFixed(2);
     },
     
     /**
@@ -490,12 +590,15 @@ const CalculatorUI = {
         const targetInput = document.getElementById('targetCash');
         const lookbackInput = document.getElementById('lookbackWindow');
         const leverageInput = document.getElementById('leverageRate');
+        const allocationModeInput = document.getElementById('allocationMode');
         
         if (targetInput) targetInput.value = CalculatorState.config.targetCash;
         if (lookbackInput) lookbackInput.value = CalculatorState.config.lookbackWindow;
         if (leverageInput) leverageInput.value = CalculatorState.config.leverageRate || 1;
+        if (allocationModeInput) allocationModeInput.value = this.getAllocationMode();
         
         // Render assets
+        this.syncAllocationModeUI();
         this.renderAssetsList();
     },
 };

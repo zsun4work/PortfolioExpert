@@ -51,6 +51,29 @@ const DataManager = {
         const [year, month, day] = dateStr.split('-').map(Number);
         return new Date(year, month - 1, day);
     },
+
+    /**
+     * Find the latest row with a valid numeric price.
+     * Some futures series have trailing rows with null/NaN close fields.
+     * @param {Array} rows - API price rows sorted by date asc
+     * @returns {Object|null} Latest valid row + normalized price
+     */
+    getLatestValidPriceRow(rows) {
+        if (!Array.isArray(rows) || rows.length === 0) {
+            return null;
+        }
+
+        for (let i = rows.length - 1; i >= 0; i--) {
+            const row = rows[i];
+            const rawPrice = row?.adj_close ?? row?.close;
+            const price = Number(rawPrice);
+            if (Number.isFinite(price) && price > 0) {
+                return { row, price };
+            }
+        }
+
+        return null;
+    },
     
     // =========================================================================
     // Data Freshness
@@ -155,26 +178,55 @@ const DataManager = {
     async fetchLatestPrices() {
         const tickers = CalculatorState.getTickers();
         const prices = {};
+        const endDate = this.getLatestTradingDay();
+        const fallbackStartDate = new Date(endDate);
+        fallbackStartDate.setDate(fallbackStartDate.getDate() - 45);
+        const fallbackStartStr = fallbackStartDate.toISOString().split('T')[0];
         
         for (const ticker of tickers) {
             try {
-                const response = await API.getPrices(ticker);
+                // Prefer bounded range queries for robustness (especially some futures symbols).
+                // This avoids loading the entire cached history when we only need the latest row.
+                const response = await API.getPrices(ticker, fallbackStartStr, endDate);
                 if (response.data && response.data.length > 0) {
-                    // Get the latest price
-                    const latest = response.data[response.data.length - 1];
-                    prices[ticker] = {
-                        date: latest.date,
-                        price: latest.adj_close || latest.close,
-                        open: latest.open,
-                        high: latest.high,
-                        low: latest.low,
-                        close: latest.close,
-                        adjClose: latest.adj_close,
-                        volume: latest.volume,
-                    };
+                    const latestValid = this.getLatestValidPriceRow(response.data);
+                    if (latestValid) {
+                        const { row: latest, price } = latestValid;
+                        prices[ticker] = {
+                            date: latest.date,
+                            price,
+                            open: latest.open,
+                            high: latest.high,
+                            low: latest.low,
+                            close: latest.close,
+                            adjClose: latest.adj_close,
+                            volume: latest.volume,
+                        };
+                    }
                 }
             } catch (e) {
-                console.warn(`Failed to fetch price for ${ticker}:`, e);
+                // Fallback: try unbounded query in case the ticker only has older cached data.
+                try {
+                    const response = await API.getPrices(ticker);
+                    if (response.data && response.data.length > 0) {
+                        const latestValid = this.getLatestValidPriceRow(response.data);
+                        if (latestValid) {
+                            const { row: latest, price } = latestValid;
+                            prices[ticker] = {
+                                date: latest.date,
+                                price,
+                                open: latest.open,
+                                high: latest.high,
+                                low: latest.low,
+                                close: latest.close,
+                                adjClose: latest.adj_close,
+                                volume: latest.volume,
+                            };
+                        }
+                    }
+                } catch (fallbackError) {
+                    console.warn(`Failed to fetch price for ${ticker}:`, fallbackError);
+                }
             }
         }
         

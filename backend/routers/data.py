@@ -181,10 +181,25 @@ async def get_prices(
             detail=f"No data found for ticker '{ticker}'"
         )
     
+    # FastAPI/Starlette JSON responses reject NaN/Inf values.
+    # Some futures rows can contain NaN in OHLCV fields, so sanitize first.
+    import math
+
+    records = data.to_dict(orient="records")
+    cleaned_records = []
+    for row in records:
+        cleaned_row = {}
+        for key, value in row.items():
+            if isinstance(value, float) and (math.isnan(value) or math.isinf(value)):
+                cleaned_row[key] = None
+            else:
+                cleaned_row[key] = value
+        cleaned_records.append(cleaned_row)
+
     return {
         "ticker": ticker,
-        "count": len(data),
-        "data": data.to_dict(orient="records"),
+        "count": len(cleaned_records),
+        "data": cleaned_records,
     }
 
 

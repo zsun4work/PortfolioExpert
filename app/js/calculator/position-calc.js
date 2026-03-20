@@ -9,11 +9,13 @@ const PositionCalculator = {
      * @param {number} targetCash - Total portfolio value
      * @param {Object} weights - {ticker: weight} (should sum to 1)
      * @param {Object} prices - {ticker: {price, ...}}
+     * @param {Object} explicitTargetShares - Optional {ticker: shares} to bypass rounding from target dollar
      * @returns {Object} Position details by ticker
      */
-    calculateTargetPositions(targetCash, weights, prices) {
+    calculateTargetPositions(targetCash, weights, prices, explicitTargetShares = null) {
         const positions = {};
         let totalActual = 0;
+        let totalTarget = 0;
         
         for (const [ticker, weight] of Object.entries(weights)) {
             const priceInfo = prices[ticker];
@@ -25,10 +27,14 @@ const PositionCalculator = {
             const price = priceInfo.price;
             
             // Target dollar amount for this asset
-            const targetDollar = targetCash * weight;
+            let targetDollar = targetCash * weight;
             
             // Target shares (round to nearest integer)
-            const targetShares = Math.round(targetDollar / price);
+            let targetShares = Math.round(targetDollar / price);
+            if (explicitTargetShares && explicitTargetShares[ticker] !== undefined) {
+                targetShares = Math.max(0, Math.round(explicitTargetShares[ticker]));
+                targetDollar = targetShares * price;
+            }
             
             // Actual dollar value at target shares
             const actualDollar = targetShares * price;
@@ -48,13 +54,14 @@ const PositionCalculator = {
             };
             
             totalActual += actualDollar;
+            totalTarget += targetDollar;
         }
         
         // Add totals
         positions._totals = {
-            targetDollar: targetCash,
+            targetDollar: totalTarget,
             actualDollar: totalActual,
-            drift: targetCash > 0 ? (totalActual - targetCash) / targetCash : 0,
+            drift: totalTarget > 0 ? (totalActual - totalTarget) / totalTarget : 0,
         };
         
         return positions;
@@ -129,20 +136,26 @@ const PositionCalculator = {
     
     /**
      * Calculate positions and orders in one call
+     * @param {Object} options - Optional override settings
      * @returns {Object} {positions, orders}
      */
-    calculate() {
+    calculate(options = {}) {
         const targetCash = CalculatorState.config.targetCash;
-        const leverageRate = CalculatorState.config.leverageRate || 1;
-        const weights = CalculatorState.getWeights();
+        const leverageRate = options.leverageRate || CalculatorState.config.leverageRate || 1;
+        const weights = options.weights || CalculatorState.getWeights();
         const prices = CalculatorState.prices;
         const holdings = CalculatorState.getCurrentHoldings();
         
         // Apply leverage to get effective buying power
-        const leveragedCash = targetCash * leverageRate;
+        const leveragedCash = options.effectiveBuyingPower || (targetCash * leverageRate);
         
         // Calculate positions with leveraged buying power
-        const positions = this.calculateTargetPositions(leveragedCash, weights, prices);
+        const positions = this.calculateTargetPositions(
+            leveragedCash,
+            weights,
+            prices,
+            options.explicitTargetShares || null
+        );
         
         // Calculate trade orders
         const orders = this.calculateTradeOrders(positions, holdings);
